@@ -1,0 +1,9 @@
+2011-09-15  Douglas M. Fowler   <dfowler@uw.edu>
+    *v0.2 includes a nubmer of major updates including:
+        -removal of R as a dependency
+        -implementation of visualizations using matplotlib
+        -implementation of Scipy/Numpy to perform Poisson tests
+        -expurgation of the usage of most Biopython functions (none are now required)
+        -significant changes in implementation to reduce runtime to ~2h for a typical data set
+        
+    *documentation updated to reflect the much simplified installation process

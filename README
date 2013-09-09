@@ -1,0 +1,60 @@
+============================
+Enrich-0.2 documentation
+============================
+:Authors: Douglas M. Fowler, Carlos L. Araya, Wayne Gerards
+:Homepage: http://depts.washington.edu/sfields/software/enrich/
+:Organization: University of Washington
+:Address: Department of Genome Sciences, Box 355065, Seattle, WA, 98195
+:Copyright: Douglas M. Fowler and Carlos L. Araya, 2010-2011
+:License: FreeBSD
+:Contact: Douglas M. Fowler (dfowler at uw dot edu)
+
+============
+Installation
+============
+Enrich retains core functionality when run without any :ref:`dependencies <dependencies>` in a pure Python environment. Thus, Enrich can be run by executing the ``enrich.py`` script located in the Enrich tarball without any taking any other steps. 
+
+For convenience, Enrich is can be installed using `easy_install <http://peak.telecommunity.com/DevCenter/EasyInstall>`_ which is part of `setuptools <http://peak.telecommunity.com/DevCenter/setuptools>`_. Please obtain the current version of Enrich `here <http://depts.washington.edu/sfields/software/enrich/>`_. After downloading Enrich, install it by typing::
+
+	easy_install Enrich-|version|.tar.gz
+	
+If you do not have setuptools, running the ``ez_setup.py`` script in the source tarball will automatically download and install setuptools followed by Enrich.
+
+Installation on a cluster
+-------------------------
+If you are using a cluster and do not have root access, ``easy_install`` may fail because it does not have write access to the default installation directories.  You can overcome this limitation by using the ``-d`` easy_install option, which allows you to specify an installation directory to which you do have access.  The install directory will need to be in your *$PYTHONPATH*, and you will also need to add it to your *$PATH* if you wish to use the ``enrich`` executable, which will be installed in the specified directory.
+
+.. _dependencies:
+
+Dependencies
+------------
+Enrich will identify and enumerate variants as well as calculate enrichment ratios without any dependencies. However, Enrich depends upon several common Python packages to perform optional tasks. Many of these dependencies are available as precompiled binaries, and it is recommended that these precompiled binaries be used whenever possible.  Below, each the purpose of each dependency is explained along with recommended versions and brief guidance for installation. Installing the dependencies in the order listed is recommended.
+
+DRMAA
+^^^^^
+:What it's used for: DRMAA is required to interface with OGE
+:What versions have been tested: DRMAA-0.4b3
+:How is it installed?: DRMAA can be installed using easy_install by typing ``easy_install drmaa==0.4b3`` 
+    
+More information is available `here <http://code.google.com/p/drmaa-python/>`_
+
+Numpy and Scipy
+^^^^^^^^^^^^^^^
+:What it's used for: Numpy and Scipy are used for generating visualizations and for calculating q-values for enrichment and depletion
+:What versions have been tested: numpy-1.4.1, scipy-0.8.0 and 0.9.0
+:How is it installed?: Precompiled binaries are available for Numpy and Scipy for OS X, Windows and some flavors of Unix. These, as well as source code and instructions for installation are available `here <http://new.scipy.org/download.html>`_.
+
+
+Biopython
+^^^^^^^^^ 
+:What it's used for: Biopython is used for performing the optional Needleman-Wunsch alignment of read pairs
+:What versions have been tested: biopython-1.5.2 and 1.5.5
+:How is it installed?: Biopython can be installed using easy_install by typing ``easy_install biopython==1.55b``
+
+More information is available `here <http://biopython.org/DIST/docs/install/Installation.html>`_
+
+Matplotlib
+^^^^^^^^^^
+:What it's used for: matplotlib is used to generate visualizations
+:What versions have been tested: matplotlib-1.0.1
+:How is it installed?: Precompiled binaries are available for matplotlib for OS X and Windows and are available `here <http://sourceforge.net/projects/matplotlib/files/matplotlib/matplotlib-1.0.1/>`_.  Detailed instructions for installation, including from source code, are available `here <http://matplotlib.sourceforge.net/users/installing.html>`_.

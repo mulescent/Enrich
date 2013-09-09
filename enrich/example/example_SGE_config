@@ -1,0 +1,64 @@
+<?xml version = "1.0" ?>
+<enrich_config root_element="TRUE">
+<general_info section="TRUE">
+<filename>example_SGE_config</filename>
+<input_read1_filename>unsel_example_F</input_read1_filename>
+<input_read2_filename>unsel_example_R</input_read2_filename>
+<local>SGE</local>
+<path>FX_PATH</path>
+<run_name>Example SGE</run_name>
+<sel_read1_filename>sel_example_F</sel_read1_filename>
+<sel_read2_filename>sel_example_R</sel_read2_filename>
+<wtDNA>GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT</wtDNA>
+<wtPRO>DVPLPAGWEMAKTSSGQRYFLNHIDQTTTWQDPR</wtPRO>
+</general_info>
+<fastq_filter section="TRUE">
+<index_mismatch_threshold>1</index_mismatch_threshold>
+<index_mode>index</index_mode>
+<index_sequence>AATTCTGA</index_sequence>
+<input_index_file>unsel_example_index</input_index_file>
+<run_filter>y</run_filter>
+<sel_index_file>sel_example_index</sel_index_file>
+</fastq_filter>
+<read_fuser section="TRUE">
+<fuser_mode>B</fuser_mode>
+<include_nonoverlap_region>y</include_nonoverlap_region>
+<input_read1_filename_fuser>unsel_example_F_index_filtered.fq</input_read1_filename_fuser>
+<input_read2_filename_fuser>unsel_example_R_index_filtered.fq</input_read2_filename_fuser>
+<paired_mismatch_threshold>5</paired_mismatch_threshold>
+<read1_overlap_end>87</read1_overlap_end>
+<read1_overlap_start>14</read1_overlap_start>
+<read2_overlap_end>73</read2_overlap_end>
+<read2_overlap_start>0</read2_overlap_start>
+<run_aligner>n</run_aligner>
+<sel_read1_filename_fuser>sel_example_F_index_filtered.fq</sel_read1_filename_fuser>
+<sel_read2_filename_fuser>sel_example_R_index_filtered.fq</sel_read2_filename_fuser>
+</read_fuser>
+<read_aligner section="TRUE">
+<Ncount_max>0</Ncount_max>
+<avg_quality>20</avg_quality>
+<chaste>y</chaste>
+<gap_max>0</gap_max>
+<input_filename_aligner>unsel_example_F_index_filtered_B</input_filename_aligner>
+<maximum_mutation_run>3</maximum_mutation_run>
+<sel_filename_aligner>sel_example_F_index_filtered_B</sel_filename_aligner>
+<unresolvable_max>0</unresolvable_max>
+</read_aligner>
+<map_counts section="TRUE">
+<input_filename_map_counts>unsel_example_F_index_filtered_B_PRO_qc,unsel_example_F_index_filtered_B_DNA_qc</input_filename_map_counts>
+<sel_filename_map_counts>sel_example_F_index_filtered_B_PRO_qc,sel_example_F_index_filtered_B_DNA_qc</sel_filename_map_counts>
+</map_counts>
+<map_ratios section="TRUE">
+<input_filename_map_ratios>counts_unsel_example_F_index_filtered_B_PRO_qc,counts_unsel_example_F_index_filtered_B_DNA_qc</input_filename_map_ratios>
+<sel_filename_map_ratios>counts_sel_example_F_index_filtered_B_PRO_qc,counts_sel_example_F_index_filtered_B_DNA_qc</sel_filename_map_ratios>
+</map_ratios>
+<map_unlink section="TRUE">
+<input_filename_map_unlink>counts_unsel_example_F_index_filtered_B_PRO_qc,counts_unsel_example_F_index_filtered_B_DNA_qc,counts_unsel_example_F_index_filtered_B_PRO_qc.m1,counts_unsel_example_F_index_filtered_B_DNA_qc.m1,counts_unsel_example_F_index_filtered_B_PRO_qc.m2,counts_unsel_example_F_index_filtered_B_DNA_qc.m2</input_filename_map_unlink>
+<sel_filename_map_unlink>counts_sel_example_F_index_filtered_B_PRO_qc,counts_sel_example_F_index_filtered_B_DNA_qc,counts_sel_example_F_index_filtered_B_PRO_qc.m1,counts_sel_example_F_index_filtered_B_DNA_qc.m1,counts_sel_example_F_index_filtered_B_PRO_qc.m2,counts_sel_example_F_index_filtered_B_DNA_qc.m2</sel_filename_map_unlink>
+<unlink_modes>counts,wild_counts</unlink_modes>
+</map_unlink>
+<enrich_plot section="TRUE">
+<input_filename_freqplot>unlink_counts_unsel_example_F_index_filtered_B_PRO_qc,unlink_counts_sel_example_F_index_filtered_B_PRO_qc,unlink_wild_counts_unsel_example_F_index_filtered_B_PRO_qc,unlink_wild_counts_sel_example_F_index_filtered_B_PRO_qc</input_filename_freqplot>
+<input_filename_ratioplot>unlink_counts_sel_example_F_index_filtered_B_PRO_qc,unlink_counts_unsel_example_F_index_filtered_B_PRO_qc;unlink_counts_sel_example_F_index_filtered_B_PRO_qc.m1,unlink_counts_unsel_example_F_index_filtered_B_PRO_qc.m1;unlink_counts_sel_example_F_index_filtered_B_PRO_qc.m2,unlink_counts_unsel_example_F_index_filtered_B_PRO_qc.m2</input_filename_ratioplot>
+</enrich_plot>
+</enrich_config>

@@ -1,0 +1,14 @@
+Metadata-Version: 1.0
+Name: Enrich
+Version: 0.2
+Summary: Protein Functional Analysis by Enrichment and Depletion of Variants 
+Home-page: http://depts.washington.edu/sfields/software/enrich/
+Author: Douglas M. Fowler
+Author-email: dfowler@uw.edu
+License: FreeBSD
+Download-URL: http://depts.washington.edu/sfields/software/enrich/Enrich-0.2.tar.gz
+Description: 
+        A tool for analysing high throughput sequencing data from a pair of unselected and selected libraries to create fitness estimates for protein or DNA variants in each library
+Platform: UNKNOWN
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python
