@@ -1,0 +1,12 @@
+{
+  "libraries" : [
+    {
+      "name" : "example",
+      "description" : "Library from the Enrich 0.2 example dataset.",
+      "index" : {
+        "sequence" : "AATTCTGA",
+        "mismatch_threshold" : 1
+      }
+    }
+  ]
+}

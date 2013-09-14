@@ -82,7 +82,7 @@ def main(path, infile, mismatch_threshold, wtseq, index_file, index_sequence, mo
             index_read = remainder_index + f_index.read(lenread)
 
             #check to see if the end of file has arrived (i.e. if the length of the read from the input file is less than the specified length
-            if len(index_read) < lenread:
+            if len(index_read) - len(remainder_index) < lenread:
                 lenbit = 0
                 
             #split the read into lines 
@@ -130,7 +130,7 @@ def main(path, infile, mismatch_threshold, wtseq, index_file, index_sequence, mo
                 input_read_R = remainder_input_R + f_infile_R.read(lenread)
 
             #check to see if the end of file has arrived (i.e. if the length of the read from the input file is less than the specified length
-            if len(input_read_F) < lenread:
+            if len(input_read_F) - len(remainder_input_F) < lenread:
                 lenbit = 0
             
             #make sure that the reads from the file are of equal length 
@@ -257,7 +257,7 @@ def main(path, infile, mismatch_threshold, wtseq, index_file, index_sequence, mo
                 raw_R = remainder_R + f_infile_R.read(lenread)
             
             #check to see if the end of file has arrived (i.e. if the length of the read from the input file is less than the specified length
-            if len(raw_F) < lenread:
+            if len(raw_F) - len(remainder_F) < lenread:
                 lenbit = 0
             
             #make sure that the reads from the file are of equal length 
