@@ -5,6 +5,7 @@ import argparse
 import json
 import itertools
 
+
 __DEFAULT_BUFFER_SIZE = 100000
 
 
@@ -118,18 +119,20 @@ def assign_library_mismatch_thresholds(config, mismatch_threshold=None):
         return config
 
 
-def split_fastq(config, outdir, forward=None, reverse=None, index=None):
+def split_fastq(config, outdir, index, forward, reverse):
     """
     """
     if index is None:
-        print("Warning: no index file specified for split_fastq", file=stderr)
+        print("Error: no index file specified for split_fastq", file=stderr)
         return
 
     # build an iterator to process the files in parallel
     fq_handles = {} # output file handles and index read sequences
     if forward is not None and reverse is not None:
-        fq_iterator = itertools.izip(read_fastq(index), read_fastq(forward),
-                                     read_fastq(reverse))
+        fq_iterator = itertools.izip_longest(read_fastq(index), 
+                                             read_fastq(forward),
+                                             read_fastq(reverse),
+                                             fillvalue=None)
 
         for library in config['libraries']:
             name, ext = os.path.splitext(os.path.basename(index))
@@ -149,7 +152,9 @@ def split_fastq(config, outdir, forward=None, reverse=None, index=None):
                  open(reverse_name, "w"))
 
     elif forward is not None:
-        fq_iterator = itertools.izip(read_fastq(index), read_fastq(forward))
+        fq_iterator = itertools.izip_longest(read_fastq(index), 
+                                             read_fastq(forward),
+                                             fillvalue=None)
 
         for library in config['libraries']:
             name, ext = os.path.splitext(os.path.basename(index))
@@ -164,7 +169,9 @@ def split_fastq(config, outdir, forward=None, reverse=None, index=None):
                 (open(index_name, "w"), open(forward_name, "w"))
 
     elif reverse is not None:
-        fq_iterator = itertools.izip(read_fastq(index), read_fastq(reverse))
+        fq_iterator = itertools.izip_longest(read_fastq(index),
+                                             read_fastq(reverse),
+                                             fillvalue=None)
 
         for library in config['libraries']:
             name, ext = os.path.splitext(os.path.basename(index))
@@ -184,6 +191,9 @@ def split_fastq(config, outdir, forward=None, reverse=None, index=None):
         return
 
     for t in fq_iterator:
+        if None in t:
+            print("Error: FASTQ files are not the same length", file=stderr)
+            break
         index_read = t[0][1]
         library_match = None
         for library in config['libraries']:
@@ -224,8 +234,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = assign_library_ids(json.load(open(args.config)))
-    config = assign_library_mismatch_thresholds(config)
-    split_fastq(config, args.output, args.forward, args.reverse, args.index)
+    config = assign_library_mismatch_thresholds(config, 
+                mismatch_threshold=args.mismatches)
+
+    split_fastq(config, args.output, args.index, args.forward, args.reverse)
+    
     name, ext = os.path.splitext(os.path.basename(args.config))
     postrun_config_name = name + ".postrun" + ext
     postrun_config_name = os.path.join(args.output, postrun_config_name)
