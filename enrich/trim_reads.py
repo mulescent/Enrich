@@ -1,24 +1,8 @@
 from __future__ import print_function
 from sys import stderr
 import os.path
-import string
 import argparse
-from split_fastq import read_fastq
-
-
-__dna_trans = string.maketrans('actgACTG', 'tgacTGAC')
-
-
-def trim_fastq(fq_tuple, start, end):
-    new_sequence = fq_tuple[1][start - 1:end]
-    new_quality = fq_tuple[2][start - 1:end]
-    return fq_tuple[0], new_sequence, new_quality
-
-
-def reverse_fastq(fq_tuple):
-    new_sequence = fq_tuple[1].translate(__dna_trans)[::-1]
-    new_quality = fq_tuple[2][::-1]
-    return fq_tuple[0], new_sequence, new_quality
+from fastq_util import read_fastq, print_fastq, trim_fastq, reverse_fastq
 
 
 if __name__ == "__main__":
@@ -45,5 +29,4 @@ if __name__ == "__main__":
             fq = trim_fastq(fq, args.start, args.end)
             if args.reverse:
                 fq = reverse_fastq(fq)
-            print("@%s" % fq[0], fq[1], "+", fq[2], sep="\n",
-                  file=output_handle)
+            print_fastq(fq, file=output_handle)

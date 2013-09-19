@@ -4,57 +4,7 @@ import os.path
 import argparse
 import json
 import itertools
-
-
-__DEFAULT_BUFFER_SIZE = 100000
-
-
-def read_fastq(fname, buffer_size=__DEFAULT_BUFFER_SIZE):
-    """Generator function for reading records from a FASTQ file.
-
-    Yields the FASTQ record's name, sequence, and quality values.
-    """
-    try:
-        handle = open(fname, 'U')
-    except IOError:
-        print("Error: could not open FASTQ file '%s'" % fname, file=stderr)
-        return
-
-    ext = os.path.splitext(fname)[-1].lower()
-    if ext not in ('.fq', '.fastq'):
-        if len(ext) > 0:
-            print("Warning: unrecognized FASTQ file extension '%s'" % ext, file=stderr)
-        else:
-            print("Warning: FASTQ file has no file extension", file=stderr)
-
-    eof = False
-    leftover = ''
-
-    while not eof:
-        buf = handle.read(buffer_size)
-        if len(buf) < buffer_size:
-            eof = True
-
-        buf = leftover + buf # prepend partial record from previous buffer
-        lines = buf.split('\n')
-        fastq_count = len(lines) / 4
-
-        if not eof: # handle lines from the trailing partial FASTQ record
-            dangling = len(lines) % 4
-            if dangling == 0: # quality line (probably) incomplete
-                dangling = 4
-                fastq_count = fastq_count - 1
-            # join the leftover lines back into a string
-            leftover = '\n'.join(lines[len(lines) - dangling:])
-
-        # index into the list of lines to pull out the FASTQ records
-        for i in xrange(fastq_count):
-            name = lines[i * 4][1:].partition(" ")[0]
-            sequence = lines[i * 4 + 1]
-            quality = lines[i * 4 + 3]
-            yield name, sequence, quality
-
-    handle.close()
+from fastq_util import read_fastq, print_fastq
 
 
 def assign_library_ids(config):
@@ -209,8 +159,7 @@ def split_fastq(config, outdir, index, forward, reverse):
 
         if library_match:
             for i in xrange(len(t)):
-                print("@%s" % t[i][0], t[i][1], "+", t[i][2], sep="\n",
-                      file=fq_handles[library_match][i])
+                print_fastq(t[i], file=fq_handles[library_match][i])
 
     # close all the files
     for handle_tuple in fq_handles.values():
