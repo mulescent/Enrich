@@ -5,7 +5,7 @@ import string
 import re
 
 
-__DEFAULT_BUFFER_SIZE = 100000
+__BUFFER_SIZE = 100000
 __dna_trans = string.maketrans('actgACTG', 'tgacTGAC')
 
 
@@ -20,7 +20,7 @@ header_pattern = re.compile("@(?P<MachineName>.+)"
                             "/(?P<ReadNumber>\d)")
 
 
-def read_fastq(fname, buffer_size=__DEFAULT_BUFFER_SIZE):
+def read_fastq(fname, filter_function=None, buffer_size=__BUFFER_SIZE):
     """Generator function for reading records from a FASTQ file.
 
     Yields the FASTQ record's name, sequence, and quality values.
@@ -34,7 +34,8 @@ def read_fastq(fname, buffer_size=__DEFAULT_BUFFER_SIZE):
     ext = os.path.splitext(fname)[-1].lower()
     if ext not in ('.fq', '.fastq'):
         if len(ext) > 0:
-            print("Warning: unrecognized FASTQ file extension '%s'" % ext, file=stderr)
+            print("Warning: unrecognized FASTQ file extension '%s'" % ext, 
+                  file=stderr)
         else:
             print("Warning: FASTQ file has no file extension", file=stderr)
 
@@ -60,10 +61,14 @@ def read_fastq(fname, buffer_size=__DEFAULT_BUFFER_SIZE):
 
         # index into the list of lines to pull out the FASTQ records
         for i in xrange(fastq_count):
-            header = lines[i * 4]
-            sequence = lines[i * 4 + 1]
-            quality = lines[i * 4 + 3]
-            yield header, sequence, quality
+            # (header, sequence, quality)
+            fq = (lines[i * 4], lines[i * 4 + 1], lines[i * 4 + 3])
+            if filter_function is None: # no filtering
+                yield fq
+            elif filter_function(fq):   # passes filtering
+                yield fq
+            else:                       # fails filtering
+                continue
 
     handle.close()
 
@@ -84,8 +89,8 @@ def reverse_fastq(fq):
     return fq[0], new_sequence, new_quality
 
 
-def parse_header(header):
-    match = header_pattern.match(header)
+def parse_header(header, pattern=header_pattern):
+    match = pattern.match(header)
     if match is None:
         return None
     else:
