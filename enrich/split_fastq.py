@@ -3,8 +3,8 @@ from sys import stderr
 import os.path
 import argparse
 import json
-import itertools
-from fastq_util import read_fastq, print_fastq
+from itertools import izip_longest
+from fastq_util import read_fastq_multi, print_fastq
 
 
 def assign_library_ids(config):
@@ -47,19 +47,19 @@ def assign_library_mismatch_thresholds(config, mismatch_threshold=None):
     unassigned_error = False
     noninteger_error = False
     for lib in config['libraries']:
-        if 'mismatch_threshold' not in lib['index']:
+        if 'mismatch threshold' not in lib['index']:
             if mismatch_threshold is None:
-                print("Error: no mismatch_threshold specified for '%s'" %
+                print("Error: no mismatch threshold specified for '%s'" %
                     lib['name'], file=stderr)
                 unassigned_error = True
             else:
-                lib['index']['mismatch_threshold'] = mismatch_threshold
+                lib['index']['mismatch threshold'] = mismatch_threshold
         else:
             try:
-                lib['index']['mismatch_threshold'] = \
-                    int(lib['index']['mismatch_threshold'])
+                lib['index']['mismatch threshold'] = \
+                    int(lib['index']['mismatch threshold'])
             except ValueError:
-                print("Error: non-integer mismatch_threshold for '%s'" %
+                print("Error: non-integer mismatch threshold for '%s'" %
                     lib['name'], file=stderr)
                 noninteger_error = True
 
@@ -79,10 +79,7 @@ def split_fastq(config, outdir, index, forward, reverse):
     # build an iterator to process the files in parallel
     fq_handles = {} # output file handles and index read sequences
     if forward is not None and reverse is not None:
-        fq_iterator = itertools.izip_longest(read_fastq(index), 
-                                             read_fastq(forward),
-                                             read_fastq(reverse),
-                                             fillvalue=None)
+        fq_iterator = read_fastq_multi([index, forward, reverse])
 
         for library in config['libraries']:
             name, ext = os.path.splitext(os.path.basename(index))
@@ -102,9 +99,7 @@ def split_fastq(config, outdir, index, forward, reverse):
                  open(reverse_name, "w"))
 
     elif forward is not None:
-        fq_iterator = itertools.izip_longest(read_fastq(index), 
-                                             read_fastq(forward),
-                                             fillvalue=None)
+        fq_iterator = read_fastq_multi([index, forward])
 
         for library in config['libraries']:
             name, ext = os.path.splitext(os.path.basename(index))
@@ -119,9 +114,7 @@ def split_fastq(config, outdir, index, forward, reverse):
                 (open(index_name, "w"), open(forward_name, "w"))
 
     elif reverse is not None:
-        fq_iterator = itertools.izip_longest(read_fastq(index),
-                                             read_fastq(reverse),
-                                             fillvalue=None)
+        fq_iterator = read_fastq_multi([index, reverse])
 
         for library in config['libraries']:
             name, ext = os.path.splitext(os.path.basename(index))
@@ -151,9 +144,9 @@ def split_fastq(config, outdir, index, forward, reverse):
             for i in xrange(len(library['index']['sequence'])):
                 if index_read[i] != library['index']['sequence'][i]:
                     mismatches += 1
-                    if mismatches > library['index']['mismatch_threshold']:
+                    if mismatches > library['index']['mismatch threshold']:
                         break
-            if mismatches <= library['index']['mismatch_threshold']:
+            if mismatches <= library['index']['mismatch threshold']:
                 library_match = library['id']
                 break
 

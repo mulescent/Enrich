@@ -5,7 +5,20 @@
       "description" : "Library from the Enrich 0.2 example dataset.",
       "index" : {
         "sequence" : "AATTCTGA",
-        "mismatch_threshold" : 1
+        "mismatch threshold" : 1
+      },
+      "overlap" : {
+        "forward" : {
+          "start" : 0,
+          "end" : 10,
+          "extend" : true
+        },
+        "reverse" : {
+          "start" : 0,
+          "end" : 10,
+          "extend" : true
+        },
+        "mismatch threshold" : 5
       }
     }
   ]
