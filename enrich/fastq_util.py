@@ -4,10 +4,12 @@ import os.path
 import string
 import re
 from itertools import izip_longest
+from array import array
 
-__all__ = ["check_fastq_extension", "filter_fastq_chastity", 
+
+__all__ = ["check_fastq_extension", "fastq_quality_str2list", "fastq_quality_list2str", "filter_fastq_chastity", 
            "parse_fastq_header", "print_fastq", "read_fastq", 
-           "read_fastq_multi", "reverse_fastq", "trim_fastq"]
+           "read_fastq_multi", "reverse_fastq", "trim_fastq", "trim_fastq_length"]
 
 
 # Matches FASTQ headers based on the following pattern (modify as needed):
@@ -21,7 +23,9 @@ header_pattern = re.compile("@(?P<MachineName>.+)"
                             "#(?P<IndexRead>\d)"
                             "/(?P<ReadNumber>\d)")
 
+
 BUFFER_SIZE = 100000 # empirically optimized for reading FASTQ files
+
 
 dna_trans = string.maketrans("actgACTG", "tgacTGAC")
 
@@ -161,6 +165,16 @@ def trim_fastq(fq, start, end):
     return fq[0], new_sequence, new_quality
 
 
+def trim_fastq_length(fq, start, length):
+    """
+    Returns a new FASTQ tuple containing length bases including start.
+
+    Bases are numbered starting at 1. Header information is unchanged.
+    """
+    end = start + length - 1
+    return trim_fastq(fq, start, end)
+
+
 def reverse_fastq(fq):
     """
     Returns a new FASTQ tuple with reverse-complemented sequence.
@@ -192,13 +206,13 @@ def parse_fastq_header(header, pattern=header_pattern):
         return header_dict
 
 
-def filter_fastq_chastity(fq, pattern=header_pattern):
+def filter_fastq_chastity(fq):
     """
     Filtering function for read_fastq and read_fastq_multi.
 
     Returns True if the chastity bit is set in the FASTQ header.
     """
-    match = pattern.match(fq[0])
+    match = header_pattern.match(fq[0])
     if match is None:
         return False
     else:
@@ -207,4 +221,39 @@ def filter_fastq_chastity(fq, pattern=header_pattern):
             return True
         else:
             return False
+
+
+def fastq_quality(fq, base=33):
+    """
+    Convert the quality string to a list of integers.
+
+    base is 33 for Sanger and Illumina 1.8, or 64 for Illumina 1.3 and 1.5.
+    """
+    quality = [x - base for x in array('b', fq[2]).tolist()]
+    return quality
+
+
+def fastq_quality_reconvert(quality, base=33):
+    """
+    Convert a list of integers into a quality string.
+
+    base is 33 for Sanger and Illumina 1.8, or 64 for Illumina 1.3 and 1.5.
+    """
+    fq_quality = [x + base for x in quality]
+    return array('b', fq_quality).tostring()
+
+
+def fastq_min_quality(fq, base=33):
+    """
+    Return the minimum base quality in the read.
+    """
+    return min(fastq_quality(fq, base))
+
+
+def fastq_avg_quality(fq, base=33):
+    """
+    Return the average base quality in the read.
+    """
+    return float(sum(fastq_quality(fq))) / len(fq[1])
+
 

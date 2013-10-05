@@ -43,23 +43,23 @@ def assign_library_ids(config):
     return config
 
 
-def assign_library_mismatch_thresholds(config, mismatch_threshold=None):
+def assign_library_max_mismatches(config, max_mismatches=None):
     unassigned_error = False
     noninteger_error = False
     for lib in config['libraries']:
-        if 'mismatch threshold' not in lib['index']:
-            if mismatch_threshold is None:
-                print("Error: no mismatch threshold specified for '%s'" %
+        if 'max mismatches' not in lib['index']:
+            if max_mismatches is None:
+                print("Error: max mismatches unspecified for '%s'" %
                     lib['name'], file=stderr)
                 unassigned_error = True
             else:
-                lib['index']['mismatch threshold'] = mismatch_threshold
+                lib['index']['max mismatches'] = max_mismatches
         else:
             try:
-                lib['index']['mismatch threshold'] = \
-                    int(lib['index']['mismatch threshold'])
+                lib['index']['max mismatches'] = \
+                    int(lib['index']['max mismatches'])
             except ValueError:
-                print("Error: non-integer mismatch threshold for '%s'" %
+                print("Error: non-integer max mismatches for '%s'" %
                     lib['name'], file=stderr)
                 noninteger_error = True
 
@@ -144,9 +144,9 @@ def split_fastq(config, outdir, index, forward, reverse):
             for i in xrange(len(library['index']['sequence'])):
                 if index_read[i] != library['index']['sequence'][i]:
                     mismatches += 1
-                    if mismatches > library['index']['mismatch threshold']:
+                    if mismatches > library['index']['max mismatches']:
                         break
-            if mismatches <= library['index']['mismatch threshold']:
+            if mismatches <= library['index']['max mismatches']:
                 library_match = library['id']
                 break
 
@@ -176,8 +176,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = assign_library_ids(json.load(open(args.config)))
-    config = assign_library_mismatch_thresholds(config, 
-                mismatch_threshold=args.mismatches)
+    config = assign_library_max_mismatches(config, 
+                                           max_mismatches=args.mismatches)
 
     split_fastq(config, args.output, args.index, args.forward, args.reverse)
     

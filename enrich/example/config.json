@@ -1,25 +1,28 @@
 {
-  "libraries" : [
+  "experiments" : [
     {
-      "name" : "example",
-      "description" : "Library from the Enrich 0.2 example dataset.",
-      "index" : {
-        "sequence" : "AATTCTGA",
-        "mismatch threshold" : 1
-      },
-      "overlap" : {
-        "forward" : {
-          "start" : 0,
-          "end" : 10,
-          "extend" : true
-        },
-        "reverse" : {
-          "start" : 0,
-          "end" : 10,
-          "extend" : true
-        },
-        "mismatch threshold" : 5
-      }
+      "libraries" : [
+        {
+          "name" : "example",
+          "description" : "Library from the Enrich 0.2 example dataset.",
+          "index" : {
+            "sequence" : "AATTCTGA",
+            "max mismatches" : 1
+          },
+          "wild type" : {
+            "sequence" : "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+            "coding" : true,
+            "max mismatches" : 5,
+            "reference offset" : 0
+          },
+          "overlap" : {
+            "forward start" : 10,
+            "reverse start" : 10,
+            "overlap only" : false,
+            "length" : 20
+          }
+        }
+      ]
     }
   ]
 }
