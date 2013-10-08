@@ -37,20 +37,24 @@ def check_fastq_extension(fname, quiet=False, error_handle=stderr):
     Returns True if the extension is recognized (.fastq or .fq), else False.
     Prints an error message to error_handle, suppressed if quiet is True.
     """
-    ext = os.path.splitext(fname)[-1].lower()
-    if ext in (".fq", ".fastq"):
-        return True
-    else:
-        if len(ext) > 0:
-            if not quiet:
-                print("Warning: unrecognized FASTQ file extension '%s'" % ext,
-                      file=stderr)
-            return False
+    if os.path.isfile(fname):
+        ext = os.path.splitext(fname)[-1].lower()
+        if ext in (".fq", ".fastq"):
+            return True
         else:
-            if not quiet:
-                print("Warning: FASTQ file has no file extension",
-                      file=stderr)
-            return False
+            if len(ext) > 0:
+                if not quiet:
+                    print("Warning: unrecognized FASTQ file " 
+                          "extension '%s'" % ext, file=stderr)
+                return False
+            else:
+                if not quiet:
+                    print("Warning: FASTQ file has no file extension",
+                          file=stderr)
+                return False
+    else:
+        print("Warning: FASTQ file does not exist", file=stderr)
+        return False
 
 
 def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE):

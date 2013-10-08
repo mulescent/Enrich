@@ -12,7 +12,6 @@
           "wild type" : {
             "sequence" : "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
             "coding" : true,
-            "max mismatches" : 5,
             "reference offset" : 0
           },
           "overlap" : {
@@ -20,6 +19,21 @@
             "reverse start" : 10,
             "overlap only" : false,
             "length" : 20
+          },
+          "fastq files" : {
+            "forward" : "/path/to/forward/fastq/reads",
+            "reverse" : "/path/to/reverse/fastq/reads"
+          },
+          "filters" : {
+            "remove unresolvable" : true,
+            "max mutations" : 5
+          }
+        },
+        {
+          "name" : "basic example",
+          "description" : "Library for the BasicEnrichLibrary class.",
+          "fastq files" : {
+            "forward" : "/path/to/reads"
           }
         }
       ]

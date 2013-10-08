@@ -7,6 +7,7 @@ from fastq_util import *
 from collections import Counter
 from itertools import izip_longest
 from copy import deepcopy
+from enrich_error import EnrichError
 
 
 __all__ = ["BasicEnrichLibrary", "BarcodeEnrichLibrary", 
@@ -60,6 +61,17 @@ aa_codes = {
 }
 
 
+# Information strings for the different kinds of read filtering
+# Used for properly formatting error messages
+filtered_read_messages = {
+        'remove unresolvable' : "unresolvable mismatch",
+        'min quality' : "single-base quality",
+        'avg quality' : "average quality",
+        'mutations' : "excess mutations"
+}
+
+
+
 def has_indel(variant):
     """
     Returns True if the variant contains an indel mutation.
@@ -67,20 +79,6 @@ def has_indel(variant):
     variant is a string containing mutations in HGVS format.
     """
     return any(x in variant for x in ("ins", "del", "dup"))
-
-
-def read_config_file(config_file):
-    ext = os.path.splitext(config_file)[-1].lower()
-    if ext != ".json":
-        if len(ext) > 0:
-            print("Warning: unrecognized config file extension '%s'" \
-                  % ext, file=stderr)
-        else:
-            print("Warning: config file has no extension", file=stderr)
-
-    with open(config_file, "U") as handle:
-        config = json.load(handle)
-    return config
 
 
 def needleman_wunsch(a, b):
@@ -103,34 +101,59 @@ class EnrichLibrary(object):
     Subclasess should implement the required functionality to get the  
     variant DNA sequences that are being assessed.
     """
-    def __init__(self):
-        self.config = None
-        self.wt_dna = None
-        self.wt_protein = None
+    def __init__(self, config):
+        # set values from the config object
+        try:
+            self.set_wt(config['wild type']['sequence'], 
+                        coding=config['wild type']['coding'])
+            self.reference_offset = config['wild type']['reference offset']
+        except KeyError as key:
+            raise EnrichError("Missing required config value '%s'" % key)
+
+        # initialize values to be set by EnrichExperiment
+        self.verbose = False
+        self.log = None
+
+        # initialize data
         self.variants = Counter()
         self.mutations_nt = Counter()
         self.mutations_aa = Counter()
-        self.max_mutations = 2
-        self.verbose_filter = None
+        self.filters = None
 
 
     def is_coding(self):
         return self.wt_protein is not None
 
 
-    def read_config(self, config):
-        """
-        Set instance variables based on the configuration object.
-
-        This method should be extended by derived classes to set class-
-        specific instance variables.
-        """
-        self.config = config
-        # set instance variables
+    def count(self):
+        raise NotImplementedError("must be implemented by subclass")
 
 
-    def parse_fastq(self):
-        raise NotImplementedError("Method must be implemented by subclass")
+    def set_filters(self, config, class_default_filters):
+        self.filters = class_default_filters
+
+        for key in self.filters:
+            if key in config['filters']:
+                self.filters[key] = config['filters'][key]
+
+        unused = list()
+        for key in config['filters']:
+            if key not in self.filters:
+                unused.append(key)
+        if len(unused) > 0:
+            print("Warning: unused filter parameters (%s)" % \
+                  ', '.join(unused), file=stderr)
+
+        self.filter_stats = dict()
+        for key in self.filters:
+            self.filter_stats[key] = 0
+
+
+    def report_filtered_read(self, fq, filter_flags):
+        print("Filtered read (%s)" % (', '.join(filtered_read_messages(x)
+                    for x in filter_flags if filter_flags[x])),
+              file=self.log)
+        print_fastq(fq, file=self.log)
 
 
     def set_wt(self, sequence, coding=True, codon_table=codon_table):
@@ -146,14 +169,10 @@ class EnrichLibrary(object):
         sequence = "".join(sequence.split()) # remove whitespace
 
         if not re.match("^[ACGTacgt]+$", sequence):
-            print("Error: WT DNA sequence contains unexpected characters",
-                  file=stderr)
-            return
+            raise EnrichError("WT DNA sequence contains unexpected characters")
 
         if len(sequence) % 3 != 0 and coding:
-            print("Error: WT DNA sequence contains incomplete codons",
-                  file=stderr)
-            return
+            raise EnrichError("WT DNA sequence contains incomplete codons")
         
         self.wt_dna = sequence.upper()
         if coding:
@@ -161,11 +180,9 @@ class EnrichLibrary(object):
             for i in xrange(0, len(self.wt_dna), 3):
                 self.wt_protein += codon_table[self.wt_dna[i:i + 3]]
 
-        return
 
-
-    def count_variant(self, variant_dna, copies=1, reference_offset=0,
-                      include_indels=True, codon_table=codon_table):
+    def count_variant(self, variant_dna, copies=1, include_indels=True, 
+                      codon_table=codon_table):
         """
         Identify and count the variant.
 
@@ -188,7 +205,7 @@ class EnrichLibrary(object):
                         variant_dna[i].upper() != 'N':  # ignore N's
                     mutations.append((i, "%s>%s" % \
                                        (self.wt_dna[i], variant_dna[i])))
-                    if len(mutations) > self.max_variants: # abort and align
+                    if len(mutations) > self.filters['max mutations']:
                         matrix = needleman_wunsch(variant_dna, self.wt_dna)
                         mutations = list()
                         # PROCESS THE MATRIX
@@ -197,7 +214,7 @@ class EnrichLibrary(object):
                         duplication = "dup%s" % (nuc)
                         break
 
-        if len(mutations) > self.max_variants: # post-alignment
+        if len(mutations) > self.filters['max mutations']: # post-alignment
             # discard this variant
             return None
 
@@ -208,8 +225,8 @@ class EnrichLibrary(object):
                 variant_protein += codon_table[variant_dna[i:i + 3]]
 
             for pos, change in mutations:
-                ref_dna_pos = pos + reference_offset + 1
-                ref_pro_pos = (pos + reference_offset) / 3 + 1
+                ref_dna_pos = pos + self.reference_offset + 1
+                ref_pro_pos = (pos + self.reference_offset) / 3 + 1
                 mut = "c.%d%s" % (ref_dna_pos, change)
                 if has_indel(change):
                     mut += " (p.%s%dfs)" % \
@@ -223,7 +240,7 @@ class EnrichLibrary(object):
                 mutation_strings.append(mut)
         else:
             for pos, change in mutations:
-                ref_dna_pos = pos + reference_offset + 1
+                ref_dna_pos = pos + self.reference_offset + 1
                 mut = "n.%d%s" % (ref_dna_pos, change)
                 mutation_strings.append(mut)
 
@@ -267,11 +284,7 @@ class BarcodeEnrichLibrary(EnrichLibrary):
         EnrichLibrary.__init__(self)
 
 
-    def read_config(self, config_file):
-        EnrichLibrary.read_config(self, config_file)
-
-
-    def build_filter_function(self):
+    def count(self):
         pass
 
 
@@ -285,42 +298,40 @@ class BarcodeEnrichLibrary(EnrichLibrary):
 
 
 class OverlapEnrichLibrary(EnrichLibrary):
-    def __init__(self):
-        EnrichLibrary.__init__(self)
-        self.overlap = self.config['overlap']
-        self.filters = None
-        self.forward_fname = None
-        self.reverse_fname = None
-
-
-    def read_config(self, config_file):
-        EnrichLibrary.read_config(self, config_file)
-        self.set_filters()
-
-
-    def set_filters(self):
-        self.filters = {'unresolvable' : False, 'min quality' : 0,
-                        'avg quality' : 0}
-
-        for key in self.filters:
-            if key in self.config['filters']:
-                self.filters[key] = self.config['filters'][key]
+    def __init__(self, config):
+        EnrichLibrary.__init__(self, config)
+        try:
+            if check_fastq_extension(config['fastq']['forward']):
+                self.forward = config['fastq']['forward']
+            if check_fastq_extension(config['fastq']['reverse']):
+                self.reverse = config['fastq']['reverse']
+            self.fwd_start = int(config['overlap']['forward start'])
+            self.rev_start = int(config['overlap']['reverse start'])
+            self.overlap_length = int(config['overlap']['length'])
+            self.trim = config['overlap']['overlap only']
+        except KeyError as key:
+            raise EnrichError("Missing required config value %s" % key)
+        except ValueError as value:
+            raise EnrichError("Count not convert config value: %s" % value)
+        self.set_filters(config, {'remove unresolvable' : False, 
+                                  'min quality' : 0,
+                                  'avg quality' : 0,
+                                  'max mutations' : len(self.wt_dna)})
 
 
     def fuse_reads(self, fwd, rev):
         rev = reverse_fastq(rev)
-        fwd_quality = fastq_quality_str2list(fwd)
-        rev_quality = fastq_quality_str2list(rev)
+        fwd_quality = fastq_quality(fwd)
+        rev_quality = fastq_quality(rev)
 
-        rev_extra_start = self.overlap['reverse start'] - 1 + \
-                          self.overlap['length'] + 1
+        rev_extra_start = self.rev_start - 1 + self.overlap_length + 1
         fused_seq = list(fwd[1] + rev[1][rev_extra_start:])
         fused_quality = fwd_quality + rev_quality[rev_extra_start:]
 
         consecutive_mismatches = 0
-        for i in xrange(self.overlap['length']):
-            i_f = self.overlap['foward start'] - 1 + i
-            i_r = self.overlap['reverse start'] - 1 + i
+        for i in xrange(self.overlap_length):
+            i_f = self.fwd_start - 1 + i
+            i_r = self.rev_start - 1 + i
             if fwd[1][i_f] == rev[1][i_r]:
                 consecutive_mismatches = 0
                 # take the highest quality value
@@ -342,81 +353,104 @@ class OverlapEnrichLibrary(EnrichLibrary):
 
         fused = (fwd[0], fused_seq, 
                  fastq_quality_reconvert(fused_quality))
-        if self.overlap['overlap only']:
-            fused = trim_fastq_length(fused, self.overlap['forward start'], 
-                                      self.overlap['length'])
+        if self.trim:
+            fused = trim_fastq_length(fused, self.fwd_start, 
+                                      self.overlap_length)
         return fused
 
 
-    def GOOD_FUNCTION_NAME(self, forward_file, reverse_file):
-        # initialize filtered read counters
-        self.filters['stats'] = {'unresolvable' : 0, 'min quality' : 0,
-                                 'avg quality' : 0, 'total' : 0}
+    def count(self):
+        # flags for verbose output of filtered reads
+        filter_flags = dict()
+        for key in self.filters:
+            filter_flags[key] = False
 
-        excess_mismatches = 0
-        if self.verbose_filter is not None:
-            excess_mismatches_list = list()
-
-        fq_iterator = read_fastq_multi([forward_file, reverse_file])
-        for fwd, rev in fq_iterator:
-            # initialize flags for verbose output of filtered reads
-            unresolvable_flag = False
-            below_min_quality_flag = False
-            below_avg_quality_flag = False
-            filtered_flag = False
+        for fwd, rev in read_fastq_multi([self.forward, self.reverse]):
+            for key in filter_flags:
+                filter_flags[key] = False
 
             # filter the read based on specified quality settings
             fused = fuse_reads(fwd, rev)
             if self.filters['unresolvable']:
                 if 'X' in fused[1]:
-                    self.filters['stats']['unresolvable'] += 1
-                    unresolvable_flag = True
+                    self.filter_stats['unresolvable'] += 1
+                    filter_flags['unresolvable'] = True
             if self.filters['min quality'] > 0:
                 if fastq_min_quality(fused) < self.filters['min quality']:
-                    self.filters['stats']['min quality'] += 1
-                    below_min_quality_flag = True
+                    self.filter_stats['min quality'] += 1
+                    filter_flags['min quality'] = True
             if self.filters['avg quality'] > 0:
                 if fastq_average_quality(fq) < self.filters['avg quality']:
-                    self.filters['stats']['avg quality'] += 1
-                    below_avg_quality_flag = True
-            if any((unresolvable_flag, below_min_quality_flag, 
-                    below_avg_quality_flag)):
-                self.filters['stats']['total'] += 1
-                if self.verbose_filter is not None:
-                    filter_messages = list()
-                    if unresolvable_flag:
-                        filter_messages.append("unresolvable mismatch")
-                    if below_min_quality_flag:
-                        filter_messages.append("single-base quality")
-                    if below_avg_quality_flag:
-                        filter_messages.append("average quality")
-                    print("Filtered read (%s)" % (', '.join(filter_messages)),
-                          file=self.verbose_filter)
-                    print_fastq(fused, file=self.verbose_filter)
-            else:
+                    self.filter_stats['avg quality'] += 1
+                    filter_flags['avg quality'] = True
+            if not any(filter_flags.values()): # passed quality filtering
                 mutations = self.count_variant(fused[1])
-                if mutations is None: # fused read was discarded
-                    excess_mismatches += 1
-                    if self.verbose_filter is not None:
-                        excess_mismatches_list.append(fused[1])
-
-        if self.verbose_filter is not None:
-            print("Variants with excess mismatches", file=self.verbose_filter)
-            for x in excess_mismatches_list:
-                print(x, file=self.verbose_filter)
+                if mutations is None: # fused read has too many mutations
+                    self.filter_stats['max mutations'] += 1
+                    filter_flags['max mutations'] = True
+            if any(filter_flags.values()):
+                self.filter_stats['total'] += 1
+                if self.verbose:
+                    self.report_filtered_read(fused, filter_flags)
 
 
 
 class BasicEnrichLibrary(EnrichLibrary):
-    def __init__(self):
-        EnrichLibrary.__init__(self)
+    def __init__(self, config):
+        EnrichLibrary.__init__(self, config)
+        try:
+            if 'forward' in config['fastq'] and 'reverse' in config['fastq']:
+                raise EnrichError("Multiple FASTQ files specified")
+            elif 'forward' in config['fastq']:
+                if check_fastq_extension(config['fastq']['forward']):
+                    self.reads = config['fastq']['forward']
+                    self.reverse_reads = False
+            elif 'reverse' in config['fastq']:
+                if check_fastq_extension(config['fastq']['reverse']):
+                    self.reads = config['fastq']['reverse']
+                    self.reverse_reads = True
+            else:
+                raise KeyError("'forward' or 'reverse'")
+        except KeyError as key:
+            raise EnrichError("Missing required config value: %s" % key)
+        except ValueError as value:
+            raise EnrichError("Count not convert config value: %s" % value)
+        self.set_filters(config, {'min quality' : 0,
+                                  'avg quality' : 0,
+                                  'max mutations' : len(self.wt_dna)})
 
 
-    def read_config(self, config_file):
-        EnrichLibrary.read_config(self, config_file)
+    def count(self):
+        # flags for verbose output of filtered reads
+        filter_flags = dict()
+        for key in self.filters:
+            filter_flags[key] = False
 
+        for fq in read_fastq(self.reads):
+            if self.reverse_reads:
+                fq = reverse_fastq(fq)
 
-    def build_filter_function(self):
-        pass
+            for key in filter_flags:
+                filter_flags[key] = False
+
+            # filter the read based on specified quality settings
+            if self.filters['min quality'] > 0:
+                if fastq_min_quality(fq) < self.filters['min quality']:
+                    self.filter_stats['min quality'] += 1
+                    filter_flags['min quality'] = True
+            if self.filters['avg quality'] > 0:
+                if fastq_average_quality(fq) < self.filters['avg quality']:
+                    self.filter_stats['avg quality'] += 1
+                    filter_flags['avg quality'] = True
+            if not any(filter_flags.values()): # passed quality filtering
+                mutations = self.count_variant(fq[1])
+                if mutations is None: # fused read has too many mutations
+                    self.filter_stats['max mutations'] += 1
+                    filter_flags['max mutations'] = True
+            if any(filter_flags.values()):
+                self.filter_stats['total'] += 1
+                if self.verbose:
+                    self.report_filtered_read(fq, filter_flags)
+
 
 
