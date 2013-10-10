@@ -254,7 +254,7 @@ def fastq_min_quality(fq, base=33):
     return min(fastq_quality(fq, base))
 
 
-def fastq_avg_quality(fq, base=33):
+def fastq_mean_quality(fq, base=33):
     """
     Return the average base quality in the read.
     """

@@ -8,6 +8,7 @@ from collections import Counter
 from itertools import izip_longest
 from copy import deepcopy
 from enrich_error import EnrichError
+from aligner import Aligner
 
 
 # Standard codon table for translating wild type and variant DNA sequences
@@ -94,7 +95,8 @@ class SeqLib(object):
             'remove unresolvable' : "unresolvable mismatch",
             'min quality' : "single-base quality",
             'avg quality' : "average quality",
-            'mutations' : "excess mutations"
+            'max mutations' : "excess mutations",
+            'remove overlap indels' : "indel in read overlap"
     }
 
 
@@ -116,6 +118,7 @@ class SeqLib(object):
         self.mutations_nt = Counter()
         self.mutations_aa = Counter()
         self.filters = None
+        self.aligner = Aligner()
 
 
     def is_coding(self):
@@ -209,12 +212,28 @@ class SeqLib(object):
                     mutations.append((i, "%s>%s" % \
                                        (self.wt_dna[i], variant_dna[i])))
                     if len(mutations) > self.filters['max mutations']:
-                        matrix = needleman_wunsch(variant_dna, self.wt_dna)
                         mutations = list()
-                        # PROCESS THE MATRIX
-                        insertion = "_%dins%s" % (pos + 1, nuc)
-                        deletion = "_%ddel" % (pos)
-                        duplication = "dup%s" % (nuc)
+                        traceback = self.aligner.align(self.wt_dna, 
+                                                       variant_dna)
+                        for x, y, cat in traceback:
+                            if cat == "match":
+                                continue
+                            elif cat == "mismatch":
+                                mut = "%s>%s" % (self.wt_dna[x], variant_dna[y])
+                            elif cat == "insertion":
+                                if y > 0:
+                                    if variant_dna[y] == variant_dna[y - 1]:
+                                        mut = "dup%s" % variant_dna[y]
+                                    else:
+                                        mut = "_%dins%s" % \
+                                                (x + 2, variant_dna[y]))
+                                else:                                    
+                                    mut = "_%dins%s" % (x + 2, variant_dna[y]))
+                            elif cat == "deletion":
+                                mut = "_%ddel" % (x + 1)
+                            else:
+                                raise EnrichError("Alignment result error")
+                            mutations.append((x, mut))
                         break
 
         if len(mutations) > self.filters['max mutations']: # post-alignment
