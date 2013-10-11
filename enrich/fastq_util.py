@@ -7,9 +7,10 @@ from itertools import izip_longest
 from array import array
 
 
-__all__ = ["check_fastq_extension", "fastq_quality_str2list", "fastq_quality_list2str", "filter_fastq_chastity", 
+__all__ = ["check_fastq_extension", "fastq_quality", "fastq_quality_reconvert", "filter_fastq_chastity", 
            "parse_fastq_header", "print_fastq", "read_fastq", 
-           "read_fastq_multi", "reverse_fastq", "trim_fastq", "trim_fastq_length"]
+           "read_fastq_multi", "reverse_fastq", "trim_fastq", "trim_fastq_length",
+           "fastq_min_quality", "fastq_mean_quality"]
 
 
 # Matches FASTQ headers based on the following pattern (modify as needed):
@@ -234,6 +235,7 @@ def fastq_quality(fq, base=33):
     base is 33 for Sanger and Illumina 1.8, or 64 for Illumina 1.3 and 1.5.
     """
     quality = [x - base for x in array('b', fq[2]).tolist()]
+    #quality = np.array(fq[2], dtype='c').view(np.int8) - base
     return quality
 
 

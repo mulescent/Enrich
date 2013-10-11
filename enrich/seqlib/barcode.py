@@ -17,7 +17,7 @@ class BarcodeSeqLib(SeqLib):
 
         self.set_filters(config, {'max mutations' : len(self.wt_dna)})
 
-        self.barcode_counts = dict()
+        self.barcode_counts = dict() # SHOULD BE A COUNTER
 
 
     def count(self):

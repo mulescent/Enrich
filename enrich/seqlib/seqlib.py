@@ -1,12 +1,10 @@
 from __future__ import print_function
-from sys import stdout, stderr
-import os.path
 import re
-import json
-from fastq_util import *
+import time
+from sys import stdout, stderr
 from collections import Counter
 from itertools import izip_longest
-from copy import deepcopy
+from fastq_util import *
 from enrich_error import EnrichError
 from aligner import Aligner
 
@@ -107,7 +105,7 @@ class SeqLib(object):
                         coding=config['wild type']['coding'])
             self.reference_offset = config['wild type']['reference offset']
         except KeyError as key:
-            raise EnrichError("Missing required config value '%s'" % key)
+            raise EnrichError("Missing required config value %s" % key)
 
         # initialize values to be set by EnrichExperiment
         self.verbose = False
@@ -119,6 +117,15 @@ class SeqLib(object):
         self.mutations_aa = Counter()
         self.filters = None
         self.aligner = Aligner()
+
+
+    def enable_logging(self, log):
+        self.verbose = True
+        self.log = log
+        try:
+            print("# Logging started: %s" % time.asctime(), file=self.log)
+        except (IOError, ValueError, AttributeError):
+            raise EnrichException("Could not write to log file")
 
 
     def is_coding(self):
@@ -147,11 +154,12 @@ class SeqLib(object):
         self.filter_stats = dict()
         for key in self.filters:
             self.filter_stats[key] = 0
+        self.filter_stats['total'] = 0
 
 
     def report_filtered_read(self, fq, filter_flags):
         print("Filtered read (%s)" % \
-                (', '.join(SeqLib._filter_messages(x)
+                (', '.join(SeqLib._filter_messages[x] 
                  for x in filter_flags if filter_flags[x])), file=self.log)
         print_fastq(fq, file=self.log)
 
@@ -181,6 +189,31 @@ class SeqLib(object):
                 self.wt_protein += codon_table[self.wt_dna[i:i + 3]]
 
 
+    def align_variant(self, variant_dna):
+        mutations = list()
+        traceback = self.aligner.align(self.wt_dna, variant_dna)
+        for x, y, cat in traceback:
+            if cat == "match":
+                continue
+            elif cat == "mismatch":
+                mut = "%s>%s" % (self.wt_dna[x], variant_dna[y])
+            elif cat == "insertion":
+                if y > 0:
+                    if variant_dna[y] == variant_dna[y - 1]:
+                        mut = "dup%s" % variant_dna[y]
+                    else:
+                        mut = "_%dins%s" % \
+                                (x + 2, variant_dna[y])
+                else:                                    
+                    mut = "_%dins%s" % (x + 2, variant_dna[y])
+            elif cat == "deletion":
+                mut = "_%ddel" % (x + 1)
+            else:
+                raise EnrichError("Alignment result error")
+            mutations.append((x, mut))
+        return mutations
+
+
     def count_variant(self, variant_dna, copies=1, include_indels=True, 
                       codon_table=codon_table):
         """
@@ -207,33 +240,12 @@ class SeqLib(object):
         else:
             mutations = list()
             for i in xrange(len(variant_dna)):
-                if variant_dna[i] != self.wt_dna[i] and 
+                if variant_dna[i] != self.wt_dna[i] and \
                         variant_dna[i] != 'N':  # ignore N's
                     mutations.append((i, "%s>%s" % \
                                        (self.wt_dna[i], variant_dna[i])))
                     if len(mutations) > self.filters['max mutations']:
-                        mutations = list()
-                        traceback = self.aligner.align(self.wt_dna, 
-                                                       variant_dna)
-                        for x, y, cat in traceback:
-                            if cat == "match":
-                                continue
-                            elif cat == "mismatch":
-                                mut = "%s>%s" % (self.wt_dna[x], variant_dna[y])
-                            elif cat == "insertion":
-                                if y > 0:
-                                    if variant_dna[y] == variant_dna[y - 1]:
-                                        mut = "dup%s" % variant_dna[y]
-                                    else:
-                                        mut = "_%dins%s" % \
-                                                (x + 2, variant_dna[y]))
-                                else:                                    
-                                    mut = "_%dins%s" % (x + 2, variant_dna[y]))
-                            elif cat == "deletion":
-                                mut = "_%ddel" % (x + 1)
-                            else:
-                                raise EnrichError("Alignment result error")
-                            mutations.append((x, mut))
+                        mutations = self.align_variant(variant_dna)
                         break
 
         if len(mutations) > self.filters['max mutations']: # post-alignment
@@ -244,7 +256,10 @@ class SeqLib(object):
         if self.is_coding():
             variant_protein = ""
             for i in xrange(0, len(variant_dna), 3):
-                variant_protein += codon_table[variant_dna[i:i + 3]]
+                try:
+                    variant_protein += codon_table[variant_dna[i:i + 3]]
+                except KeyError: # garbage codon due to indel
+                    variant_protein += '?'
 
             for pos, change in mutations:
                 ref_dna_pos = pos + self.reference_offset + 1
@@ -298,4 +313,35 @@ class SeqLib(object):
                     m = re.findall("p\.\w{3}\d+\w{3}", variant)
                     self.mutations_aa += Counter(dict(
                             izip_longest(m, [], fillvalue=count)))
+
+
+    def print_variants(self, min_count=0, include_indels=True, file=stdout):
+        for variant, count in self.variants.most_common():
+            if count >= min_count:
+                if not has_indel(variant) or include_indels:
+                    print("%d\t%s" % (count, variant), file=file)
+
+
+    def print_mutations_nt(self, min_count=0, include_indels=True, 
+                           file=stdout):
+        for mutation, count in self.mutations_nt.most_common():
+            if count >= min_count:
+                if not has_indel(mutation) or include_indels:
+                    print("%d\t%s" % (count, mutation), file=file)
+
+
+    def print_mutations_aa(self, min_count=0, include_indels=True, 
+                           file=stdout):
+        if self.is_coding():
+            for mutation, count in self.mutations_aa.most_common():
+                if count >= min_count:
+                    if not has_indel(mutation) or include_indels:
+                        print("%d\t%s" % (count, mutation), file=file)
+
+
+    def print_mutations(self, min_count=0, include_indels=True, file=stdout):
+        self.print_mutations_nt(min_count=min_count, 
+                                include_indels=include_indels, file=file)
+        self.print_mutations_aa(min_count=min_count, 
+                                include_indels=include_indels, file=file)
 
