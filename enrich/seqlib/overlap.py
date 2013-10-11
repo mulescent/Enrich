@@ -62,7 +62,7 @@ class OverlapSeqLib(SeqLib):
                            traceback):
                         fused_seq = None
                     else:
-                        for x, y, cat in traceback:
+                        for x, y, cat, _ in traceback:
                             if cat == "match":
                                 if rev_quality[y] > rev_quality[x]:
                                     fused_quality[x] = rev_quality[y]

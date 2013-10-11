@@ -177,7 +177,8 @@ class SeqLib(object):
         sequence = "".join(sequence.split()) # remove whitespace
 
         if not re.match("^[ACGTacgt]+$", sequence):
-            raise EnrichError("WT DNA sequence contains unexpected characters")
+            raise EnrichError("WT DNA sequence contains unexpected "
+                              "characters")
 
         if len(sequence) % 3 != 0 and coding:
             raise EnrichError("WT DNA sequence contains incomplete codons")
@@ -192,24 +193,23 @@ class SeqLib(object):
     def align_variant(self, variant_dna):
         mutations = list()
         traceback = self.aligner.align(self.wt_dna, variant_dna)
-        for x, y, cat in traceback:
+        for x, y, cat, length in traceback:
             if cat == "match":
                 continue
             elif cat == "mismatch":
                 mut = "%s>%s" % (self.wt_dna[x], variant_dna[y])
             elif cat == "insertion":
-                if y > 0:
-                    if variant_dna[y] == variant_dna[y - 1]:
-                        mut = "dup%s" % variant_dna[y]
+                if y > length:
+                    dup = variant_dna[y:y + length]
+                    if dup == variant_dna[y - length:y]:
+                        mut = "dup%s" % dup
                     else:
-                        mut = "_%dins%s" % \
-                                (x + 2, variant_dna[y])
+                        mut = "_%dins%s" % (x + 2, dup)
                 else:                                    
-                    mut = "_%dins%s" % (x + 2, variant_dna[y])
+                    mut = "_%dins%s" % (x + 2, 
+                                        variant_dna[y:y + length])
             elif cat == "deletion":
-                mut = "_%ddel" % (x + 1)
-            else:
-                raise EnrichError("Alignment result error")
+                mut = "_%ddel" % (x + length)
             mutations.append((x, mut))
         return mutations
 

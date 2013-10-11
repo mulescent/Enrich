@@ -36,45 +36,45 @@ class Aligner(object):
 
 
     def align(self, seq1, seq2):
-        self.matrix = np.ndarray(shape=(len(seq1), len(seq2)), \
+        self.matrix = np.ndarray(shape=(len(seq1) + 1, len(seq2) + 1), \
                 dtype=np.dtype([('score', np.int), ('trace', np.byte)]))
         seq1 = seq1.upper()
         seq2 = seq2.upper()
 
         # build matrix of scores/traceback information
-        for i in xrange(len(seq1)):
+        for i in xrange(len(seq1) + 1):
             self.matrix[i, 0] = (self.similarity['gap'] * i, Aligner._DEL)
-        for j in xrange(len(seq2)):
+        for j in xrange(len(seq2) + 1):
             self.matrix[0, j] = (self.similarity['gap'] * j, Aligner._INS)
-        for i in xrange(1, len(seq1)):
-            for j in xrange(1, len(seq2)):
+        for i in xrange(1, len(seq1) + 1):
+            for j in xrange(1, len(seq2) + 1):
                 match = (self.matrix[i - 1, j - 1]['score'] + \
-                            self.similarity[seq1[i]][seq2[j]], Aligner._MAT)
+                            self.similarity[seq1[i - 1]][seq2[j - 1]], Aligner._MAT)
                 delete = (self.matrix[i - 1, j]['score'] + \
                             self.similarity['gap'], Aligner._DEL)
                 insert = (self.matrix[i, j - 1]['score'] + \
                             self.similarity['gap'], Aligner._INS)
-                self.matrix[i, j] = max(match, delete, insert, 
+                self.matrix[i, j] = max(delete, insert, match, 
                                   key=lambda x: x[0])
         self.matrix[0, 0] = (0, Aligner._END)
 
         # calculate alignment from the traceback
-        i = len(seq1) - 1
-        j = len(seq2) - 1
+        i = len(seq1)
+        j = len(seq2)
         traceback = list()
         while i > 0 or j > 0:
             if self.matrix[i, j]['trace'] == Aligner._MAT:
-                if seq1[i] == seq2[j]:
-                    traceback.append((i, j, "match"))
+                if seq1[i - 1] == seq2[j - 1]:
+                    traceback.append((i - 1, j - 1, "match", None))
                 else:
-                    traceback.append((i, j, "mismatch"))
+                    traceback.append((i - 1, j - 1, "mismatch", None))
                 i -= 1
                 j -= 1
             elif self.matrix[i, j]['trace'] == Aligner._INS:
-                traceback.append((i, j, "insertion"))
+                traceback.append((i - 1, j - 1, "insertion", 1))
                 j -= 1
             elif self.matrix[i, j]['trace'] == Aligner._DEL:
-                traceback.append((i, j, "deletion"))
+                traceback.append((i - 1, j - 1, "deletion", 1))
                 i -= 1
             elif self.matrix[i, j]['trace'] == Aligner._END:
                 pass
@@ -82,6 +82,28 @@ class Aligner(object):
                 # error
                 pass
         traceback.reverse()
-        return traceback
+
+        # combine indels
+        indel = None
+        traceback_combined = list()
+        for t in traceback:
+            if t[2] == "insertion" or t[2] == "deletion":
+                if indel is not None:
+                    if t[2] == indel[2]:
+                        indel[3] += t[3]
+                    else:
+#                        raise EnrichError("Check gap penalty")
+                        print("Check gap penalty")
+                else:
+                    indel = list(t)
+            else:
+                if indel is not None:
+                    traceback_combined.append(tuple(indel))
+                    indel = None
+                traceback_combined.append(t)
+        if indel is not None:
+            traceback_combined.append(tuple(indel))
+
+        return traceback_combined
 
 
