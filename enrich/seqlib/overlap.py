@@ -23,6 +23,7 @@ class OverlapSeqLib(SeqLib):
                                   'min quality' : 0,
                                   'avg quality' : 0,
                                   'max mutations' : len(self.wt_dna),
+								  'chastity' : False,
                                   'remove overlap indels' : True})
 
 
@@ -100,11 +101,25 @@ class OverlapSeqLib(SeqLib):
                 filter_flags[key] = False
 
             # filter the read based on specified quality settings
+			if self.filters['chastity']:
+				if not filter_fastq_chastity(fwd):
+					filter_flags['chastity'] = True
+					if self.verbose:
+						self.report_filtered_read(fwd, filter_flags)
+				if not filter_fastq_chastity(rev):
+					filter_flags['chastity'] = True
+					if self.verbose:
+						self.report_filtered_read(rev, filter_flags)
+				if filter_flags['chastity']:
+					self.filter_stats['chastity'] += 1
+					self.filter_stats['total'] += 1
+					continue
             fused = fuse_reads(fwd, rev)
             if fused is None: # fuser failed
                 if self.filters['remove overlap indels']:
                     self.filter_stats['remove overlap indels'] += 1
                     self.filter_stats['total'] += 1
+					filter_flags['remove overlap indels'] = True
                     if self.verbose:
                         self.report_filtered_read(fwd, filter_flags)
                         self.report_filtered_read(rev, filter_flags)

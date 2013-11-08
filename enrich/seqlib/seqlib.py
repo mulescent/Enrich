@@ -94,6 +94,7 @@ class SeqLib(object):
             'min quality' : "single-base quality",
             'avg quality' : "average quality",
             'max mutations' : "excess mutations",
+			'chastity' : "not chaste",
             'remove overlap indels' : "indel in read overlap"
     }
 

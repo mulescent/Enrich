@@ -25,6 +25,7 @@ class BasicSeqLib(SeqLib):
             raise EnrichError("Count not convert config value: %s" % value)
         self.set_filters(config, {'min quality' : 0,
                                   'avg quality' : 0,
+								  'chastity' : False,
                                   'max mutations' : len(self.wt_dna)})
 
 
@@ -42,6 +43,10 @@ class BasicSeqLib(SeqLib):
                 filter_flags[key] = False
 
             # filter the read based on specified quality settings
+			if self.filters['chastity']:
+				if not fastq_filter_chastity(fq):
+					self.filter_stats['chastity'] += 1
+					filter_flags['chastity'] = True
             if self.filters['min quality'] > 0:
                 if fastq_min_quality(fq) < self.filters['min quality']:
                     self.filter_stats['min quality'] += 1
