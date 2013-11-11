@@ -1,4 +1,5 @@
 from seqlib import SeqLib
+from collections import Counter
 from enrich_error import EnrichError
 from fastq_util import *
 
@@ -15,9 +16,12 @@ class BarcodeSeqLib(SeqLib):
         self.variant_barcodes = dict()
         self.read_barcode_map(self.barcode_map_file)
 
-        self.set_filters(config, {'max mutations' : len(self.wt_dna)})
+        self.set_filters(config, {'min quality' : 0,
+                                  'avg quality' : 0,
+                                  'chastity' : False,
+                                  'max mutations' : len(self.wt_dna)})
 
-        self.barcode_counts = dict() # SHOULD BE A COUNTER
+        self.barcode_counts = Counter()
 
 
     def count(self):
@@ -26,6 +30,7 @@ class BarcodeSeqLib(SeqLib):
         for key in self.filters:
             filter_flags[key] = False
 
+        # count all the barcodes
         for fq in read_fastq(self.reads):
             if self.reverse_reads:
                 fq = reverse_fastq(fq)
@@ -33,7 +38,11 @@ class BarcodeSeqLib(SeqLib):
             for key in filter_flags:
                 filter_flags[key] = False
 
-            # filter the read based on specified quality settings
+            # filter the barcode based on specified quality settings
+            if self.filters['chastity']:
+                if not fastq_filter_chastity(fq):
+                    self.filter_stats['chastity'] += 1
+                    filter_flags['chastity'] = True
             if self.filters['min quality'] > 0:
                 if fastq_min_quality(fq) < self.filters['min quality']:
                     self.filter_stats['min quality'] += 1
@@ -42,15 +51,23 @@ class BarcodeSeqLib(SeqLib):
                 if fastq_average_quality(fq) < self.filters['avg quality']:
                     self.filter_stats['avg quality'] += 1
                     filter_flags['avg quality'] = True
-            if not any(filter_flags.values()): # passed quality filtering
-                mutations = self.count_variant(fq[1])
-                if mutations is None: # fused read has too many mutations
-                    self.filter_stats['max mutations'] += 1
-                    filter_flags['max mutations'] = True
-            if any(filter_flags.values()):
+            if any(filter_flags.values()): # failed quality filtering
                 self.filter_stats['total'] += 1
                 if self.verbose:
                     self.report_filtered_read(fq, filter_flags)
+            else: # passed quality filtering
+                self.barcode_counts.update([fq[1].upper()])
+
+        # count variants associated with the barcodes
+        for bc, count in self.barcode_counts.most_common():
+            if bc in self.barcode_map:
+                variant = self.barcode_map[bc]
+                mutations = self.count_variant(variant, copies=count)
+                if mutations is None: # variant has too many mutations
+                    self.filter_stats['max mutations'] += 1
+                    self.filter_stats['total'] += count # total counts reads
+                    if self.verbose:
+                        self.report_filtered_variant(variant, count)
 
 
     def read_barcode_map(self):
@@ -91,14 +108,17 @@ class BarcodeSeqLib(SeqLib):
         handle.close()
 
 
-    def read_barcodes(self, fname):
-        pass
+    def orphan_barcodes(self, mincount=0):
+        orphans = Counter()
+        for bc, count in self.barcode_counts.most_common():
+            if bc not in self.barcode_map and count > mincount:
+                orphans += Counter({bc : count})
+        return orphans
 
 
-    def count(self):
-        pass
-
-
-    def filter_barcodes(self):
-        pass
+    def report_filtered_variant(self, variant, count):
+        print("Filtered variant (%s)" % \
+                    (SeqLib._filter_messages['max mutations']), file=self.log)
+        print(variant, file=self.log)
+        print("quantity=", count, sep="", file=self.log)
 

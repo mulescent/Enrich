@@ -104,9 +104,13 @@ class SeqLib(object):
         try:
             self.set_wt(config['wild type']['sequence'], 
                         coding=config['wild type']['coding'])
-            self.reference_offset = config['wild type']['reference offset']
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key)
+
+        if 'reference offset' in config['wild type']:
+            self.reference_offset = config['wild type']['reference offset']
+        else:
+            self.reference_offset = 0
 
         # initialize values to be set by EnrichExperiment
         self.verbose = False
