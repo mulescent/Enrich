@@ -68,16 +68,6 @@ def has_indel(variant):
     return any(x in variant for x in ("ins", "del", "dup"))
 
 
-def needleman_wunsch(a, b):
-    """
-    Align the two sequences using the Needleman-Wunsch algorithm.
-
-    Returns the alignment matrix.
-    """
-    return m
-
-
-
 class SeqLib(object):
     """
     Abstract class for data from a single Enrich sequencing library.
@@ -122,6 +112,7 @@ class SeqLib(object):
         self.mutations_aa = Counter()
         self.filters = None
         self.aligner = Aligner()
+        self.libtype = None
 
 
     def enable_logging(self, log):

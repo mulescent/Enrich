@@ -1,3 +1,4 @@
+from __future__ import print_function
 from seqlib import SeqLib
 from collections import Counter
 from enrich_error import EnrichError
@@ -7,8 +8,13 @@ from fastq_util import *
 class BarcodeSeqLib(SeqLib):
     def __init__(self, config):
         SeqLib.__init__(self, config)
+        self.libtype = "barcode"
         try:
             self.barcode_map_file = config['barcodes']['map file']
+            self.set_filters(config, {'min quality' : 0,
+                                      'avg quality' : 0,
+                                      'chastity' : False,
+                                      'max mutations' : len(self.wt_dna)})
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key)
 
@@ -16,10 +22,6 @@ class BarcodeSeqLib(SeqLib):
         self.variant_barcodes = dict()
         self.read_barcode_map(self.barcode_map_file)
 
-        self.set_filters(config, {'min quality' : 0,
-                                  'avg quality' : 0,
-                                  'chastity' : False,
-                                  'max mutations' : len(self.wt_dna)})
 
         self.barcode_counts = Counter()
 

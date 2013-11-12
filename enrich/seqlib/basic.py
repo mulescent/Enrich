@@ -6,6 +6,7 @@ from fastq_util import *
 class BasicSeqLib(SeqLib):
     def __init__(self, config):
         SeqLib.__init__(self, config)
+        self.libtype = "basic"
         try:
             if 'forward' in config['fastq'] and 'reverse' in config['fastq']:
                 raise EnrichError("Multiple FASTQ files specified")
@@ -19,14 +20,14 @@ class BasicSeqLib(SeqLib):
                     self.reverse_reads = True
             else:
                 raise KeyError("'forward' or 'reverse'")
+            self.set_filters(config, {'min quality' : 0,
+                                      'avg quality' : 0,
+                                      'chastity' : False,
+                                      'max mutations' : len(self.wt_dna)})
         except KeyError as key:
             raise EnrichError("Missing required config value: %s" % key)
         except ValueError as value:
             raise EnrichError("Count not convert config value: %s" % value)
-        self.set_filters(config, {'min quality' : 0,
-                                  'avg quality' : 0,
-								  'chastity' : False,
-                                  'max mutations' : len(self.wt_dna)})
 
 
     def count(self):
@@ -43,10 +44,10 @@ class BasicSeqLib(SeqLib):
                 filter_flags[key] = False
 
             # filter the read based on specified quality settings
-			if self.filters['chastity']:
-				if not fastq_filter_chastity(fq):
-					self.filter_stats['chastity'] += 1
-					filter_flags['chastity'] = True
+            if self.filters['chastity']:
+                if not fastq_filter_chastity(fq):
+                    self.filter_stats['chastity'] += 1
+                    filter_flags['chastity'] = True
             if self.filters['min quality'] > 0:
                 if fastq_min_quality(fq) < self.filters['min quality']:
                     self.filter_stats['min quality'] += 1

@@ -6,6 +6,7 @@ from fastq_util import *
 class OverlapSeqLib(SeqLib):
     def __init__(self, config):
         SeqLib.__init__(self, config)
+        self.libtype = "overlap"
         try:
             if check_fastq_extension(config['fastq']['forward']):
                 self.forward = config['fastq']['forward']
@@ -15,16 +16,16 @@ class OverlapSeqLib(SeqLib):
             self.rev_start = int(config['overlap']['reverse start'])
             self.overlap_length = int(config['overlap']['length'])
             self.trim = config['overlap']['overlap only']
+            self.set_filters(config, {'remove unresolvable' : False, 
+                                      'min quality' : 0,
+                                      'avg quality' : 0,
+                                      'max mutations' : len(self.wt_dna),
+                                      'chastity' : False,
+                                      'remove overlap indels' : True})
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key)
         except ValueError as value:
             raise EnrichError("Count not convert config value: %s" % value)
-        self.set_filters(config, {'remove unresolvable' : False, 
-                                  'min quality' : 0,
-                                  'avg quality' : 0,
-                                  'max mutations' : len(self.wt_dna),
-								  'chastity' : False,
-                                  'remove overlap indels' : True})
 
 
     def fuse_reads(self, fwd, rev):
@@ -32,15 +33,17 @@ class OverlapSeqLib(SeqLib):
         fwd_quality = fastq_quality(fwd)
         rev_quality = fastq_quality(rev)
 
-        rev_extra_start = self.rev_start - 1 + self.overlap_length + 1
-        fused_seq = list(fwd[1] + rev[1][rev_extra_start:])
-        fused_quality = fwd_quality + rev_quality[rev_extra_start:]
+        rev_extra_start = len(rev[1]) - self.rev_start + 1
+        fwd_end = self.fwd_start + self.overlap_length - 1
+        fused_seq = list(fwd[1][:fwd_end] + rev[1][rev_extra_start:])
+        fused_quality = fwd_quality[:fwd_end] + rev_quality[rev_extra_start:]
 
         consecutive_mismatches = 0
         for i in xrange(self.overlap_length):
             a = self.fwd_start - 1 + i
-            b = self.rev_start - 1 + i
+            b = len(rev[1]) - self.rev_start - self.overlap_length + i + 1
             if fwd[1][a] == rev[1][b]:
+                print(i, a, b, "match:", fwd[1][a], "==", rev[1][b])
                 consecutive_mismatches = 0
                 # take the highest quality value
                 if rev_quality[b] > fwd_quality[a]:
@@ -58,7 +61,7 @@ class OverlapSeqLib(SeqLib):
                     # use the aligner
                     fused_seq = list()
                     fused_quality = list()
-                    traceback = self.aligner.align(fwd, rev)
+                    traceback = self.aligner.align(fwd[1], rev[1])
                     if any(t[2] in ("insertion", "deletion") for t in 
                            traceback):
                         fused_seq = None
@@ -101,25 +104,25 @@ class OverlapSeqLib(SeqLib):
                 filter_flags[key] = False
 
             # filter the read based on specified quality settings
-			if self.filters['chastity']:
-				if not filter_fastq_chastity(fwd):
-					filter_flags['chastity'] = True
-					if self.verbose:
-						self.report_filtered_read(fwd, filter_flags)
-				if not filter_fastq_chastity(rev):
-					filter_flags['chastity'] = True
-					if self.verbose:
-						self.report_filtered_read(rev, filter_flags)
-				if filter_flags['chastity']:
-					self.filter_stats['chastity'] += 1
-					self.filter_stats['total'] += 1
-					continue
+            if self.filters['chastity']:
+                if not filter_fastq_chastity(fwd):
+                    filter_flags['chastity'] = True
+                    if self.verbose:
+                        self.report_filtered_read(fwd, filter_flags)
+                if not filter_fastq_chastity(rev):
+                    filter_flags['chastity'] = True
+                    if self.verbose:
+                        self.report_filtered_read(rev, filter_flags)
+                if filter_flags['chastity']:
+                    self.filter_stats['chastity'] += 1
+                    self.filter_stats['total'] += 1
+                    continue
             fused = fuse_reads(fwd, rev)
             if fused is None: # fuser failed
                 if self.filters['remove overlap indels']:
                     self.filter_stats['remove overlap indels'] += 1
                     self.filter_stats['total'] += 1
-					filter_flags['remove overlap indels'] = True
+                    filter_flags['remove overlap indels'] = True
                     if self.verbose:
                         self.report_filtered_read(fwd, filter_flags)
                         self.report_filtered_read(rev, filter_flags)
