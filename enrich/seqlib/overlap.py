@@ -2,6 +2,7 @@ from seqlib import SeqLib
 from enrich_error import EnrichError
 from fastq_util import *
 
+_ALIGNER_THRESHOLD = 0.25 # fraction of mismatches in overlap region
 
 class OverlapSeqLib(SeqLib):
     def __init__(self, config):
@@ -39,17 +40,17 @@ class OverlapSeqLib(SeqLib):
         fused_seq = list(fwd[1][:fwd_end] + rev[1][rev_extra_start:])
         fused_quality = fwd_quality[:fwd_end] + rev_quality[rev_extra_start:]
 
-        consecutive_mismatches = 0
+        mismatches = 0
         for i in xrange(self.overlap_length):
             a = self.fwd_start - 1 + i
             b = len(rev[1]) - self.rev_start - self.overlap_length + i + 1
             if fwd[1][a] == rev[1][b]:
                 print(i, a, b, "match:", fwd[1][a], "==", rev[1][b])
-                consecutive_mismatches = 0
                 # take the highest quality value
                 if rev_quality[b] > fwd_quality[a]:
                     fused_quality[a] = rev_quality[b]
-            else: # mismatch
+            else:
+                mismatches += 1
                 if fwd_quality[a] == rev_quality[b]:
                     fused_seq[a] = 'X' # unresolvable
                 elif rev_quality[b] > fwd_quality[a]:
@@ -57,32 +58,31 @@ class OverlapSeqLib(SeqLib):
                     fused_quality[a] = rev_quality[b]
                 else:
                     pass # overlap region already same as fwd
-                consecutive_mismatches += 1
-                if consecutive_mismatches > 1:
-                    # use the aligner
-                    self.aligned_count += 1
-                    fused_seq = list()
-                    fused_quality = list()
-                    traceback = self.aligner.align(fwd[1], rev[1])
-                    if any(t[2] in ("insertion", "deletion") for t in 
-                           traceback):
-                        fused_seq = None
-                    else:
-                        for x, y, cat, _ in traceback:
-                            if cat == "match":
-                                if rev_quality[y] > rev_quality[x]:
-                                    fused_quality[x] = rev_quality[y]
-                            elif cat == "mismatch":
-                                if fwd_quality[x] == rev_quality[y]:
-                                    fused_seq[x] = 'X' # unresolvable
-                                elif rev_quality[y] > fwd_quality[x]:
-                                    fused_seq[x] = rev[1][y]
-                                    fused_quality[x] = rev_quality[y]
-                                else:
-                                    pass # overlap region already same as fwd
+            if mismatches / float(self.overlap_length) > _ALIGNER_THRESHOLD:
+                # too many mismatches, use the aligner instead
+                self.aligned_count += 1
+                fused_seq = list()
+                fused_quality = list()
+                traceback = self.aligner.align(fwd[1], rev[1])
+                if any(t[2] in ("insertion", "deletion") for t in 
+                       traceback):
+                    fused_seq = None
+                else:
+                    for x, y, cat, _ in traceback:
+                        if cat == "match":
+                            if rev_quality[y] > rev_quality[x]:
+                                fused_quality[x] = rev_quality[y]
+                        elif cat == "mismatch":
+                            if fwd_quality[x] == rev_quality[y]:
+                                fused_seq[x] = 'X' # unresolvable
+                            elif rev_quality[y] > fwd_quality[x]:
+                                fused_seq[x] = rev[1][y]
+                                fused_quality[x] = rev_quality[y]
                             else:
-                                raise EnrichError("Alignment result error")
-                    break
+                                pass # overlap region already same as fwd
+                        else:
+                            raise EnrichError("Alignment result error")
+                break
 
         if fused_seq is None: # fusing failed due to indels
             return None
