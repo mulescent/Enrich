@@ -26,6 +26,7 @@ class OverlapSeqLib(SeqLib):
             raise EnrichError("Missing required config value %s" % key)
         except ValueError as value:
             raise EnrichError("Count not convert config value: %s" % value)
+        self.aligned_count = 0
 
 
     def fuse_reads(self, fwd, rev):
@@ -59,6 +60,7 @@ class OverlapSeqLib(SeqLib):
                 consecutive_mismatches += 1
                 if consecutive_mismatches > 1:
                     # use the aligner
+                    self.aligned_count += 1
                     fused_seq = list()
                     fused_quality = list()
                     traceback = self.aligner.align(fwd[1], rev[1])
@@ -117,7 +119,7 @@ class OverlapSeqLib(SeqLib):
                     self.filter_stats['chastity'] += 1
                     self.filter_stats['total'] += 1
                     continue
-            fused = fuse_reads(fwd, rev)
+            fused = self.fuse_reads(fwd, rev)
             if fused is None: # fuser failed
                 if self.filters['remove overlap indels']:
                     self.filter_stats['remove overlap indels'] += 1
@@ -130,10 +132,10 @@ class OverlapSeqLib(SeqLib):
                     raise NotImplementedError("Indel resolution for "
                             "overlapping reads is not supported")
             else:
-                if self.filters['unresolvable']:
+                if self.filters['remove unresolvable']:
                     if 'X' in fused[1]:
-                        self.filter_stats['unresolvable'] += 1
-                        filter_flags['unresolvable'] = True
+                        self.filter_stats['remove unresolvable'] += 1
+                        filter_flags['remove unresolvable'] = True
                 if self.filters['min quality'] > 0:
                     if fastq_min_quality(fused) < self.filters['min quality']:
                         self.filter_stats['min quality'] += 1
