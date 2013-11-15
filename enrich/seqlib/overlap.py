@@ -2,7 +2,6 @@ from seqlib import SeqLib
 from enrich_error import EnrichError
 from fastq_util import *
 
-_ALIGNER_THRESHOLD = 0.25 # fraction of mismatches in overlap region
 
 class OverlapSeqLib(SeqLib):
     def __init__(self, config):
@@ -17,6 +16,7 @@ class OverlapSeqLib(SeqLib):
             self.rev_start = int(config['overlap']['reverse start'])
             self.overlap_length = int(config['overlap']['length'])
             self.trim = config['overlap']['overlap only']
+            self.max_overlap_mismatches = config['overlap']['max mismatches']
             self.set_filters(config, {'remove unresolvable' : False, 
                                       'min quality' : 0,
                                       'avg quality' : 0,
@@ -27,7 +27,19 @@ class OverlapSeqLib(SeqLib):
             raise EnrichError("Missing required config value %s" % key)
         except ValueError as value:
             raise EnrichError("Count not convert config value: %s" % value)
-        self.aligned_count = 0
+        if 'use aligner' in config['overlap']:
+            if config['overlap'] in (True, False):
+                self.use_aligner = config['overlap']['use aligner']
+                if self.use_aligner:
+                    self.aligned_count = 0
+            else:
+                raise EnrichError("Count not convert config value: %s" % \
+                        config['overlap']['use aligner'])
+        else:
+            self.use_aligner = False
+            self.aligned_count = None
+
+
 
 
     def fuse_reads(self, fwd, rev):
@@ -58,8 +70,8 @@ class OverlapSeqLib(SeqLib):
                     fused_quality[a] = rev_quality[b]
                 else:
                     pass # overlap region already same as fwd
-            if mismatches / float(self.overlap_length) > _ALIGNER_THRESHOLD:
-                # too many mismatches, use the aligner instead
+        if mismatches > self.max_overlap_mismatches:
+            if self.use_aligner:
                 self.aligned_count += 1
                 fused_seq = list()
                 fused_quality = list()
@@ -82,9 +94,10 @@ class OverlapSeqLib(SeqLib):
                                 pass # overlap region already same as fwd
                         else:
                             raise EnrichError("Alignment result error")
-                break
+            else:
+                fused_seq = None
 
-        if fused_seq is None: # fusing failed due to indels
+        if fused_seq is None: # fusing failed
             return None
         else:
             fused = (fwd[0], "".join(fused_seq), 

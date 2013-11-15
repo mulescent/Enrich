@@ -108,8 +108,8 @@ class SeqLib(object):
 
         # initialize data
         self.variants = Counter()
-        self.mutations_nt = Counter()
-        self.mutations_aa = Counter()
+        self.mutations_nt = None
+        self.mutations_aa = None
         self.filters = None
         self.aligner = Aligner()
         self.libtype = None
@@ -297,8 +297,9 @@ class SeqLib(object):
         For coding sequences, amino acid substitutions are counted
         independently of the corresponding nucleotide change.
         """
-        self.mutations_nt.clear()
-        self.mutations_aa.clear()
+        self.mutations_nt = Counter()
+        if self.is_coding():
+            self.mutations_aa = Counter()
 
         for variant, count in self.variants.iteritems():
             if not has_indel(variant) or include_indels:
