@@ -132,8 +132,44 @@ class Selection(object):
                           enrichment_dict[k]['score'])
 
 
+    def calc_enrichments(self, counter_name, enrichment_name):
+        counters = [getattr(x, counter_name, None) for x in self.libraries]
+        if all(c is None for c in counters):
+            return None
+        elif None in counters: # absent in only some SeqLibs
+            raise EnrichError("Inconsistent SeqLib count data")
+
+        allkeys = set()
+        for c in counters:
+            allkeys.update(c.keys())
+
+        edict = dict()
+        for k in allkeys:
+            values = list()
+            for c in counters:
+                if k in c:
+                    values.append(c[k])
+                else:
+                    values.append(float("NaN"))
+            if math.isnan(values[0]): # must be present in first library
+                score = float("NaN")
+            else:
+                values = [x for x in values if not math.isnan(x)]
+                if len(values) == 1: # can't calculate
+                    score = float("NaN")
+                elif len(values) == 2: # ratio
+                    score = values[1] / float(values[0])
+                else:
+                    xs = range(0, len(values))
+                    # slope, intercept, r_value, p_value, std_err
+                    score, _, _, _, _ = stats.linregress(xs, values)
+            edict[k] = score
+
+        setattr(self, enrichment_name, edict)
+
+
     def filter_barcodes(self):
         # filter barcodes on consistency
         pass
 
-        
+

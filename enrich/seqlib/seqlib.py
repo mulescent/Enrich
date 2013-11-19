@@ -279,10 +279,12 @@ class SeqLib(object):
 
         if len(mutation_strings) > 0:
             variant_string = '\t'.join(mutation_strings)
-            if copies == 1:
-                self.variants.update([variant_string])
-            else:
-                self.variants += Counter({variant_string : copies})
+        else:
+            variant_string = "wt"
+        if copies == 1:
+            self.variants.update([variant_string])
+        else:
+            self.variants += Counter({variant_string : copies})
 
         return mutation_strings
 
