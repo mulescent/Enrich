@@ -39,10 +39,10 @@ class Selection(object):
         else:
             self.carryover = None
 
-        self.enrichments = None
-        self.enrichments_nt = None
-        self.enrichments_aa = None
-        self.barcode_enrichments = None
+        self.enrichments = dict()
+        for key in self.libraries[0].counters:
+            if all(key in lib.counters for lib in self.libraries):
+                self.enrichments[key] = dict()
 
 
     def check_wt(self):
@@ -62,88 +62,39 @@ class Selection(object):
             lib.count()
             lib.count_mutations()
 
-
-    def count_enrichments(self):
-        for counter_type, enrichment_type in 
-                (('variants', 'enrichments'), 
-                 ('mutations_nt', 'enrichments_nt'), 
-                 ('mutations_aa', 'enrichments_aa'), 
-                 ('barcode_counts', 'barcode_enrichments')):
-            seqlib_counters = [getattr(lib, counter_type, None) \
-                               for lib in self.libraries]
-            if all(c is None for c in seqlib_counters):
-                continue
-            elif None in seqlib_counters: # absent in only some SeqLibs
-                raise EnrichError("Inconsistent SeqLib count data")
-
-            counted_set = set()
-            for counts in seqlib_counters:
-                counted_set.update(counts.keys())
-
-            enrichment_dict = dict()
-            for k in counted_set: # all encountered variants
-                enrichment_dict[k] = {'counts' : list(), 
-                                      'score' : float("NaN")}
-                for counts in seqlib_counters:
-                    if k in counts:
-                        enrichment_dict[k]['counts'].append(counts[k])
-                    else: # not found in this SeqLib
-                        enrichment_dict[k]['counts'].append(float("NaN"))
-
-            setattr(self, enrichment_type, enrichment_dict)
-
-
-    def score_enrichments(self):
-        for enrichment_type in ('enrichments', 'enrichments_nt', 
-                                'enrichments_aa', 'barcode_enrichments'):
-            enrichment_dict = getattr(self, enrichment_type)
-            if enrichment_dict is not None:
-                for k in enrichment_dict:
-                    if math.isnan(enrichment_dict[k]['counts'][0]):
-                        # must be present in first library
-                        score = float("NaN")
-                    else:
-                        values = [x for x in enrichment_dict[k]['counts']
-                                  if not math.isnan(x)]
-                        if len(values) == 1:
-                            score = float("NaN")
-                        elif len(values) == 2:
-                            score = values[1] / float(values[0])
-                        else:
-                            xs = range(0, len(values))
-                            # slope, intercept, r_value, p_value, std_err
-                            score, _, _, _, _ = stats.linregress(xs, values)
-                    enrichment_dict[k]['score'] = score
+        for key in self.enrichments:
+            self.calc_enrichments[key]
+        if 'barcodes' in self.enrichments:
+            self.filter_barcodes()
 
         
     def write_enrichments(self, directory):
-        for enrichment_type in ('enrichments', 'enrichments_nt', 
-                                'enrichments_aa', 'barcode_enrichments'):
-            enrichment_dict = getattr(self, enrichment_type)
-            if enrichment_dict is not None:
-                fname = os.path.join(directory, enrichment_type + ".tsv")
-                handle = open(fname, "w")
-                header = ["sequence"]
-                header += ["count%d" % i for i in xrange(len(self.libraries))]
-                header += ["score"]
-                print("\t".join(header), file=handle)
-                for k in enrichment_dict:
-                    print(k, "\t".join(enrichment_dict[k]['counts']), 
-                          enrichment_dict[k]['score'])
+        for key in (self.enrichments):
+            fname = os.path.join(directory, "enrichments", key + ".tsv")
+            handle = open(fname, "w")
+            header = ["sequence"]
+            header += ["lib%d.count" % (i + 1) for i in 
+                       xrange(len(self.libraries))]
+            header += ["score"]
+            print("\t".join(header), file=handle)
+            for k, values in self.counter_data(key):
+                print(k, "\t".join(values), self.enrichments[key][k])
 
 
-    def calc_enrichments(self, counter_name, enrichment_name):
-        counters = [getattr(x, counter_name, None) for x in self.libraries]
-        if all(c is None for c in counters):
-            return None
-        elif None in counters: # absent in only some SeqLibs
-            raise EnrichError("Inconsistent SeqLib count data")
+    def counter_data(self, key):
+        """
+        Generator function for getting count data from SeqLibs.
 
+        Yields a list of values from the SeqLib counters. Extracts data from
+        the counters of type key. If a given value doesn't have data in one of
+        the counters, nan is given. All lists of values therefore have the 
+        same length (the number of SeqLibs).
+        """
+        counters = [lib.counters[key] for lib in self.libraries]
         allkeys = set()
         for c in counters:
             allkeys.update(c.keys())
 
-        edict = dict()
         for k in allkeys:
             values = list()
             for c in counters:
@@ -151,6 +102,12 @@ class Selection(object):
                     values.append(c[k])
                 else:
                     values.append(float("NaN"))
+            yield k, values
+
+
+    def calc_enrichments(self, key):
+        edict = dict()
+        for k, values in self.counter_data(key):
             if math.isnan(values[0]): # must be present in first library
                 score = float("NaN")
             else:
@@ -165,10 +122,11 @@ class Selection(object):
                     score, _, _, _, _ = stats.linregress(xs, values)
             edict[k] = score
 
-        setattr(self, enrichment_name, edict)
+        self.enrichments[key] = edict
 
 
     def filter_barcodes(self):
+        
         # filter barcodes on consistency
         pass
 

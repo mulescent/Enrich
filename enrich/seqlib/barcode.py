@@ -6,11 +6,14 @@ from fastq_util import *
 
 
 class BarcodeSeqLib(SeqLib):
-    def __init__(self, config):
+    def __init__(self, config, barcode_map=None):
         SeqLib.__init__(self, config)
         self.libtype = "barcode"
         try:
-            self.barcode_map_file = config['barcodes']['map file']
+            if barcode_map is None:
+                self.barcode_map_file = config['barcodes']['map file']
+            else:
+                self.barcode_map_file = None # provided by parent
             self.set_filters(config, {'min quality' : 0,
                                       'avg quality' : 0,
                                       'chastity' : False,
@@ -18,12 +21,11 @@ class BarcodeSeqLib(SeqLib):
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key)
 
-        self.barcode_map = dict()
-        self.variant_barcodes = dict()
-        self.read_barcode_map(self.barcode_map_file)
-
-
-        self.barcode_counts = Counter()
+        if barcode_map is None:
+            self.read_barcode_map(self.barcode_map_file)
+        else:
+            self.barcode_map = barcode_map
+        self.counters['barcodes'] = Counter()
 
 
     def count(self):
@@ -58,10 +60,10 @@ class BarcodeSeqLib(SeqLib):
                 if self.verbose:
                     self.report_filtered_read(fq, filter_flags)
             else: # passed quality filtering
-                self.barcode_counts.update([fq[1].upper()])
+                self.counters['barcodes'].update([fq[1].upper()])
 
         # count variants associated with the barcodes
-        for bc, count in self.barcode_counts.most_common():
+        for bc, count in self.counters['barcodes'].most_common():
             if bc in self.barcode_map:
                 variant = self.barcode_map[bc]
                 mutations = self.count_variant(variant, copies=count)
@@ -104,15 +106,12 @@ class BarcodeSeqLib(SeqLib):
             else:
                 self.barcode_map[barcode] = variant
 
-            if variant not in self.variant_barcodes:
-                self.variant_barcodes[variant] = set()
-            self.variant_barcodes[variant].add(barcode)
         handle.close()
 
 
     def orphan_barcodes(self, mincount=0):
         orphans = Counter()
-        for bc, count in self.barcode_counts.most_common():
+        for bc, count in self.counters['barcodes'].most_common():
             if bc not in self.barcode_map and count > mincount:
                 orphans += Counter({bc : count})
         return orphans

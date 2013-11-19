@@ -107,9 +107,7 @@ class SeqLib(object):
         self.log = None
 
         # initialize data
-        self.variants = Counter()
-        self.mutations_nt = None
-        self.mutations_aa = None
+        self.counters = {'variants' : Counter()}
         self.filters = None
         self.aligner = Aligner()
         self.libtype = None
@@ -282,65 +280,42 @@ class SeqLib(object):
         else:
             variant_string = "wt"
         if copies == 1:
-            self.variants.update([variant_string])
+            self.counters['variants'].update([variant_string])
         else:
-            self.variants += Counter({variant_string : copies})
+            self.counters['variants'] += Counter({variant_string : copies})
 
         return mutation_strings
 
 
-    def count_mutations(self, include_indels=False):
+    def count_mutations(self, indels=False):
         """
         Count the individual mutations in all variants.
 
-        If include_indels is false, all mutations in a variant that contains
-        an insertion/deletion/duplication will not be counted.
+        If indels is False, all mutations in a variant that contains an 
+        insertion/deletion/duplication will not be counted.
 
         For coding sequences, amino acid substitutions are counted
         independently of the corresponding nucleotide change.
         """
-        self.mutations_nt = Counter()
+        self.counters['mutations_nt'] = Counter()
         if self.is_coding():
-            self.mutations_aa = Counter()
+            self.counters['mutations_aa'] = Counter()
 
-        for variant, count in self.variants.iteritems():
+        for variant, count in self.counters['variants'].iteritems():
             if not has_indel(variant) or include_indels:
                 m = variant.split('\t')
-                self.mutations_nt += Counter(dict(
-                        izip_longest(m, [], fillvalue=count)))
+                self.counters['mutations_nt'] += 
+                        Counter(dict(izip_longest(m, [], fillvalue=count)))
                 if self.is_coding():
                     m = re.findall("p\.\w{3}\d+\w{3}", variant)
-                    self.mutations_aa += Counter(dict(
-                            izip_longest(m, [], fillvalue=count)))
+                    self.counters['mutations_aa'] += 
+                            Counter(dict(izip_longest(m, [], 
+                                                      fillvalue=count)))
 
 
-    def print_variants(self, min_count=0, include_indels=True, file=stdout):
-        for variant, count in self.variants.most_common():
+    def print_counter(self, key, min_count=0, indels=True, file=stdout):
+        for variant, count in self.counters[key].most_common():
             if count >= min_count:
-                if not has_indel(variant) or include_indels:
+                if not has_indel(variant) or indels:
                     print("%d\t%s" % (count, variant), file=file)
-
-
-    def print_mutations_nt(self, min_count=0, include_indels=True, 
-                           file=stdout):
-        for mutation, count in self.mutations_nt.most_common():
-            if count >= min_count:
-                if not has_indel(mutation) or include_indels:
-                    print("%d\t%s" % (count, mutation), file=file)
-
-
-    def print_mutations_aa(self, min_count=0, include_indels=True, 
-                           file=stdout):
-        if self.is_coding():
-            for mutation, count in self.mutations_aa.most_common():
-                if count >= min_count:
-                    if not has_indel(mutation) or include_indels:
-                        print("%d\t%s" % (count, mutation), file=file)
-
-
-    def print_mutations(self, min_count=0, include_indels=True, file=stdout):
-        self.print_mutations_nt(min_count=min_count, 
-                                include_indels=include_indels, file=file)
-        self.print_mutations_aa(min_count=min_count, 
-                                include_indels=include_indels, file=file)
 
