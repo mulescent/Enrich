@@ -1,5 +1,4 @@
 from __future__ import print_function
-#from enrich_error import EnrichError
 import numpy as np
 
 _simple_similarity = {
@@ -24,7 +23,6 @@ class Aligner(object):
         for key in similarity_keys:
             if not all(x in similarity[key] for x in similarity_keys) or \
                     len(similarity[key]) != len(similarity_keys):
-#               raise EnrichError("Invalid alignment similarity matrix")
                 print("Invalid alignment similarity matrix")
 
         self.similarity = similarity
@@ -93,7 +91,6 @@ class Aligner(object):
                     if t[2] == indel[2]:
                         indel[3] += t[3]
                     else:
-#                        raise EnrichError("Check gap penalty")
                         print("Check gap penalty")
                 else:
                     indel = list(t)

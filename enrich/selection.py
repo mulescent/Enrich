@@ -6,23 +6,28 @@ import seqlib.barcode
 import seqlib.overlap
 import os.path
 import math
-
-
-def new_seqlib(config):
-    if 'barcodes' in config:
-        return seqlib.barcode.BarcodeSeqLib(config)
-    elif 'overlap' in config:
-        return seqlib.overlap.OverlapSeqLib(config)
-    else:
-        return seqlib.basic.BasicSeqLib(config)
+import itertools
 
 
 class Selection(object):
     def __init__(self, config):
         self.libraries = list()
         try:
+            if 'barcodes' in config:
+                self.barcode_map_file = config['barcodes']['map file']
+                self.barcode_map = 
+                        seqlib.barcode.read_barcode_map(self.barcode_map_file)
+
             for lib in config['libraries']:
-                self.libraries.append(new_seqlib(lib))
+                if 'barcodes' in lib:
+                    new = seqlib.barcode.BarcodeSeqLib(lib, 
+                                barcode_map=self.barcode_map)
+                elif 'overlap' in lib:
+                    new = seqlib.overlap.OverlapSeqLib(lib)
+                else:
+                    new = seqlib.basic.BasicSeqLib(lib)
+                self.libraries.append(new)
+
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key)
 
@@ -30,18 +35,21 @@ class Selection(object):
             raise EnrichError("Selection class has no libraries")
         self.check_wt()
 
-        if 'carryover' in config:
-            if config['carryover'] in ("stop"):
-                self.carryover = config['carryover']
-            else:
-                self.carrover = None
-                raise EnrichError("Invalid carryover correction option \"%s\"" % config['carryover'])
-        else:
-            self.carryover = None
+        try:
+            if 'correction' in config:
+                if config['correction']['method'] == "stop":
+                    if not self.libraries[0].is_coding():
+                        raise EnrichError("Invalid correction method for "
+                                          "noncoding sequences")
+                    else:
+                        config['correction']['length percentile'] # must exist
+                        self.correction = config['correction']
+        except KeyError as key:
+            raise EnrichError("Missing required config value %s" % key)
 
         self.enrichments = dict()
-        for key in self.libraries[0].counters:
-            if all(key in lib.counters for lib in self.libraries):
+        for key in self.libraries[0].frequencies:
+            if all(key in lib.frequencies for lib in self.libraries):
                 self.enrichments[key] = dict()
 
 
@@ -57,57 +65,104 @@ class Selection(object):
 
 
     def count(self):
-        # NOT FINISHED
         for lib in self.libraries:
             lib.count()
             lib.count_mutations()
+            lib.calc_frequencies()
 
+        self.correct_frequencies()
         for key in self.enrichments:
             self.calc_enrichments[key]
         if 'barcodes' in self.enrichments:
             self.filter_barcodes()
 
-        
+    
+    def correct_frequencies(self):
+        if self.correction is not None:
+            if self.correction['method'] == "stop":
+                maxpos = len(self.libraries[0].wt_protein) * 
+                        self.correction['length percentile'] / 100.0
+                for lib in self.libraries:
+                    stops = 0
+                    for variant in lib.counters['variants']:
+                        m = variant.split('\t')
+                        # is it a stop?
+                        # is it early enough in the sequence?
+                        # if so, count it
+                    lib.correction = 1 - stops / float(sum(lib.counters['cariants'].values()))
+                
+
+            # correct things
+            pass
+        else:
+            pass
+
+
     def write_enrichments(self, directory):
         for key in (self.enrichments):
             fname = os.path.join(directory, "enrichments", key + ".tsv")
             handle = open(fname, "w")
             header = ["sequence"]
-            header += ["lib%d.count" % (i + 1) for i in 
+            header += ["lib%d.count\tlib%d.freq" % (i + 1, i + 1) for i in 
                        xrange(len(self.libraries))]
             header += ["score"]
             print("\t".join(header), file=handle)
-            for k, values in self.counter_data(key):
+            for k, frequencies, _, counts in 
+                    itertools.chain.from_iterable(zip(
+                        self.frequency_data(key), self.counter_data(key))):
+                values = itertools.chain(zip(counts, frequencies))
                 print(k, "\t".join(values), self.enrichments[key][k])
+
+
+    def frequency_data(self, key):
+        """
+        Generator function for getting frequency data from SeqLibs.
+
+        Yields a list of values from the SeqLib frequency dicts. If a given 
+        value doesn't have data in one of SeqLibs, nan is given. All lists 
+        of values therefore have the same length (the number of SeqLibs).
+        """
+        frequencies = [lib.frequencies[key] for lib in self.libraries]
+        allkeys = set()
+        for f in frequencies:
+            allkeys.update(f.keys())
+
+        for k in sorted(allkeys):
+            values = list()
+            for f in frequencies:
+                if k in f:
+                    values.append(f[k])
+                else:
+                    values.append(float("NaN"))
+            yield k, values
 
 
     def counter_data(self, key):
         """
         Generator function for getting count data from SeqLibs.
 
-        Yields a list of values from the SeqLib counters. Extracts data from
-        the counters of type key. If a given value doesn't have data in one of
-        the counters, nan is given. All lists of values therefore have the 
-        same length (the number of SeqLibs).
+        Yields a list of values from the SeqLib counters. If a given value 
+        doesn't have data in one of SeqLibs, 0 is given. All lists of values 
+        therefore have the same length (the number of SeqLibs).
         """
         counters = [lib.counters[key] for lib in self.libraries]
         allkeys = set()
         for c in counters:
             allkeys.update(c.keys())
 
-        for k in allkeys:
+        for k in sorted(allkeys):
             values = list()
             for c in counters:
                 if k in c:
                     values.append(c[k])
                 else:
-                    values.append(float("NaN"))
+                    values.append(0)
             yield k, values
 
 
     def calc_enrichments(self, key):
         edict = dict()
-        for k, values in self.counter_data(key):
+        for k, values in self.frequency_data(key):
             if math.isnan(values[0]): # must be present in first library
                 score = float("NaN")
             else:
@@ -126,7 +181,7 @@ class Selection(object):
 
 
     def filter_barcodes(self):
-        
+
         # filter barcodes on consistency
         pass
 

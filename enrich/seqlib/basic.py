@@ -38,26 +38,26 @@ class BasicSeqLib(SeqLib):
 
         for fq in read_fastq(self.reads):
             if self.reverse_reads:
-                fq = reverse_fastq(fq)
+                fq.reverse()
 
             for key in filter_flags:
                 filter_flags[key] = False
 
             # filter the read based on specified quality settings
             if self.filters['chastity']:
-                if not fastq_filter_chastity(fq):
+                if not fq.is_chaste():
                     self.filter_stats['chastity'] += 1
                     filter_flags['chastity'] = True
             if self.filters['min quality'] > 0:
-                if fastq_min_quality(fq) < self.filters['min quality']:
+                if fq.min_quality() < self.filters['min quality']:
                     self.filter_stats['min quality'] += 1
                     filter_flags['min quality'] = True
             if self.filters['avg quality'] > 0:
-                if fastq_average_quality(fq) < self.filters['avg quality']:
+                if fq.mean_quality() < self.filters['avg quality']:
                     self.filter_stats['avg quality'] += 1
                     filter_flags['avg quality'] = True
             if not any(filter_flags.values()): # passed quality filtering
-                mutations = self.count_variant(fq[1])
+                mutations = self.count_variant(fq.sequence)
                 if mutations is None: # fused read has too many mutations
                     self.filter_stats['max mutations'] += 1
                     filter_flags['max mutations'] = True

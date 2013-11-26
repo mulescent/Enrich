@@ -4,10 +4,10 @@ import time
 from sys import stdout, stderr
 from collections import Counter
 from itertools import izip_longest
-from fastq_util import *
 from enrich_error import EnrichError
 from aligner import Aligner
 
+WILD_TYPE_VARIANT = "_wt"
 
 # Standard codon table for translating wild type and variant DNA sequences
 codon_table = {
@@ -111,6 +111,7 @@ class SeqLib(object):
         self.filters = None
         self.aligner = Aligner()
         self.libtype = None
+        self.frequencies = dict()
 
 
     def enable_logging(self, log):
@@ -155,7 +156,7 @@ class SeqLib(object):
         print("Filtered read (%s)" % \
                 (', '.join(SeqLib._filter_messages[x] 
                  for x in filter_flags if filter_flags[x])), file=self.log)
-        print_fastq(fq, file=self.log)
+        print(fq, file=self.log)
 
 
     def set_wt(self, sequence, coding=True, codon_table=codon_table):
@@ -278,7 +279,7 @@ class SeqLib(object):
         if len(mutation_strings) > 0:
             variant_string = '\t'.join(mutation_strings)
         else:
-            variant_string = "wt"
+            variant_string = WILD_TYPE_VARIANT
         if copies == 1:
             self.counters['variants'].update([variant_string])
         else:
@@ -318,4 +319,12 @@ class SeqLib(object):
             if count >= min_count:
                 if not has_indel(variant) or indels:
                     print("%d\t%s" % (count, variant), file=file)
+
+
+    def calc_frequencies(self):
+        for key in self.counters:
+            self.frequencies[key] = dict()
+            total = float(sum(self.counters[key].values()))
+            for x in self.counters[key]:
+                self.frequencies[key][x] = self.counters[key][x] / total
 
