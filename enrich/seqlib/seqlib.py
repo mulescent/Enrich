@@ -90,21 +90,26 @@ class SeqLib(object):
 
 
     def __init__(self, config):
-        # set values from the config object
+        self.name = "Unnamed" + self.__class__.__name__
+        self.verbose = False
+        self.log = None
+
         try:
+            self.name = config['name']
             self.set_wt(config['wild type']['sequence'], 
                         coding=config['wild type']['coding'])
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key)
+            raise EnrichError("Missing required config value '%s'" % key, 
+                              self.name)
 
         if 'reference offset' in config['wild type']:
-            self.reference_offset = config['wild type']['reference offset']
+            try:
+                self.reference_offset = int(config['wild type']
+                                                  ['reference offset'])
+            except ValueError:
+                raise EnrichError("Invalid reference offset value", self.name)
         else:
             self.reference_offset = 0
-
-        # initialize values to be set by EnrichExperiment
-        self.verbose = False
-        self.log = None
 
         # initialize data
         self.counters = {'variants' : Counter()}
@@ -118,9 +123,10 @@ class SeqLib(object):
         self.verbose = True
         self.log = log
         try:
-            print("# Logging started: %s" % time.asctime(), file=self.log)
-        except (IOError, ValueError, AttributeError):
-            raise EnrichException("Could not write to log file")
+            print("# Logging started for '%s': %s" % 
+                        (self.name, time.asctime()), file=self.log)
+        except (IOError, AttributeError):
+            raise EnrichException("Could not write to log file", self.name)
 
 
     def is_coding(self):
@@ -136,15 +142,19 @@ class SeqLib(object):
 
         for key in self.filters:
             if key in config['filters']:
-                self.filters[key] = config['filters'][key]
+                try:
+                    self.filters[key] = int(config['filters'][key])
+                except ValueError:
+                    raise EnrichError("Invalid filter value for '%s'" % key, 
+                                      self.name)
 
         unused = list()
         for key in config['filters']:
             if key not in self.filters:
                 unused.append(key)
         if len(unused) > 0:
-            print("Warning: unused filter parameters (%s)" % \
-                  ', '.join(unused), file=stderr)
+            raise EnrichError("Unused filter parameters (%s)" % 
+                              ', '.join(unused), self.name)
 
         self.filter_stats = dict()
         for key in self.filters:
@@ -173,10 +183,11 @@ class SeqLib(object):
 
         if not re.match("^[ACGTacgt]+$", sequence):
             raise EnrichError("WT DNA sequence contains unexpected "
-                              "characters")
+                              "characters", self.name)
 
         if len(sequence) % 3 != 0 and coding:
-            raise EnrichError("WT DNA sequence contains incomplete codons")
+            raise EnrichError("WT DNA sequence contains incomplete codons", 
+                              self.name)
         
         self.wt_dna = sequence.upper()
         if coding:
@@ -226,7 +237,7 @@ class SeqLib(object):
         """
         if not re.match("^[ACGTNXacgtnx]+$", variant_dna):
             raise EnrichError("Variant DNA sequence contains unexpected "
-                              "characters")
+                              "characters", self.name)
 
         variant_dna = variant_dna.upper()
 

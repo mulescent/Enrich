@@ -1,6 +1,6 @@
 from seqlib import SeqLib
 from enrich_error import EnrichError
-from fastq_util import *
+from fastq_util import read_fastq_multi, check_fastq
 
 
 class OverlapSeqLib(SeqLib):
@@ -8,15 +8,18 @@ class OverlapSeqLib(SeqLib):
         SeqLib.__init__(self, config)
         self.libtype = "overlap"
         try:
-            if check_fastq_extension(config['fastq']['forward']):
-                self.forward = config['fastq']['forward']
-            if check_fastq_extension(config['fastq']['reverse']):
-                self.reverse = config['fastq']['reverse']
+            self.forward = config['fastq']['forward']
+            self.reverse = config['fastq']['reverse']
+
             self.fwd_start = int(config['overlap']['forward start'])
             self.rev_start = int(config['overlap']['reverse start'])
             self.overlap_length = int(config['overlap']['length'])
-            self.trim = config['overlap']['overlap only']
-            self.max_overlap_mismatches = config['overlap']['max mismatches']
+            self.trim = int(config['overlap']['overlap only'])
+            self.max_overlap_mismatches = int(config['overlap']
+                                                    ['max mismatches'])
+
+            if 'fuser failure' in config['filters']:
+                raise EnrichError("'fuser failure' is not user-configurable", self.name)
             self.set_filters(config, {'remove unresolvable' : False, 
                                       'min quality' : 0,
                                       'avg quality' : 0,
@@ -24,13 +27,17 @@ class OverlapSeqLib(SeqLib):
                                       'chastity' : False,
                                       'fuser failure' : True})
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key)
+            raise EnrichError("Missing required config value %s" % key, self.name)
         except ValueError as value:
-            raise EnrichError("Count not convert config value: %s" % value)
+            raise EnrichError("Invalid overlap parameter value %s" % value, self.name)
 
-        if not self.filters['fuser failure']:
-            raise EnrichError("'fuser failure' is not a user-configurable "
-                              "filter")
+        try:
+            check_fastq(self.forward)
+            check_fastq(self.reverse)
+        except IOError as fqerr:
+            raise EnrichError("FASTQ file error: %s" % fqerr, self.name)
+
+
 
 
     def fuse_reads(self, fwd, rev):

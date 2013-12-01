@@ -7,7 +7,7 @@ import itertools
 from array import array
 
 
-__all__ = ["FQRead", "check_fastq_extension", "read_fastq", "read_fastq_multi"]
+__all__ = ["FQRead", "check_fastq", "read_fastq", "read_fastq_multi"]
 
 
 # Matches FASTQ headers based on the following pattern (modify as needed):
@@ -138,31 +138,21 @@ class FQRead(object):
 
 
 
-def check_fastq_extension(fname, quiet=False, error_handle=stderr):
+def check_fastq(fname):
     """
-    Check for FASTQ file extension.
+    Check that the file exists and has a valid FASTQ file extension.
 
-    Returns True if the extension is recognized (.fastq or .fq), else False.
-    Prints an error message to error_handle, suppressed if quiet is True.
+    Returns if the file exists and the extension is recognized (.fastq 
+    or .fq), otherwise raise an IOError.
     """
     if os.path.isfile(fname):
         ext = os.path.splitext(fname)[-1].lower()
         if ext in (".fq", ".fastq"):
-            return True
+            return None
         else:
-            if len(ext) > 0:
-                if not quiet:
-                    print("Warning: unrecognized FASTQ file " 
-                          "extension '%s'" % ext, file=stderr)
-                return False
-            else:
-                if not quiet:
-                    print("Warning: FASTQ file has no file extension",
-                          file=stderr)
-                return False
+            raise IOError("improper file extension for '%s'" % fname)
     else:
-        print("Warning: FASTQ file does not exist", file=stderr)
-        return False
+        raise IOError("file '%s' doesn't exist" % fname)
 
 
 
@@ -175,15 +165,10 @@ def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE, qbase=33):
     The filter_function must operate on a FASTQ tuple and return True (pass)
     or False (fail). FASTQ records that fail filtering will be skipped, so
     this feature should not be used when reading files in parallel. Use 
-    read_fastq_multi instead.
+    read_fastq_multi filtering instead.
     """
-    try:
-        handle = open(fname, "U")
-    except IOError:
-        print("Error: could not open FASTQ file '%s'" % fname, file=stderr)
-        return
-
-    check_fastq_extension(fname, quiet=False, error_handle=stderr)
+    check_fastq(fname)
+    handle = open(fname, "U")
 
     eof = False
     leftover = ''

@@ -11,8 +11,13 @@ import itertools
 
 class Selection(object):
     def __init__(self, config):
+        self.name = "Unnamed" + self.__class__.__name__
         self.libraries = list()
+        self.verbose = False
+        self.log = None
+
         try:
+            self.name = config['name']
             if 'barcodes' in config:
                 if 'map file' in config['barcodes']:
                     self.barcode_map = BarcodeMap(config['barcodes']
@@ -30,10 +35,10 @@ class Selection(object):
                 self.libraries.append(new)
 
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key)
+            raise EnrichError("Missing required config value %s" % key, self.name)
 
         if len(self.libraries) == 0:
-            raise EnrichError("Selection class has no libraries")
+            raise EnrichError("Selection class has no libraries", self.name)
         self.check_wt()
 
         try:
@@ -41,12 +46,12 @@ class Selection(object):
                 if config['correction']['method'] == "stop":
                     if not self.libraries[0].is_coding():
                         raise EnrichError("Invalid correction method for "
-                                          "noncoding sequences")
+                                          "noncoding sequences", self.name)
                     else:
                         config['correction']['length percentile'] # must exist
                         self.correction = config['correction']
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key)
+            raise EnrichError("Missing required config value %s" % key, self.name)
 
         self.enrichments = dict()
         for key in self.libraries[0].frequencies:
@@ -54,15 +59,25 @@ class Selection(object):
                 self.enrichments[key] = dict()
 
 
+    def enable_logging(self, log):
+        self.verbose = True
+        self.log = log
+        try:
+            print("# Logging started for '%s': %s" % 
+                        (self.name, time.asctime()), file=self.log)
+        except (IOError, AttributeError):
+            raise EnrichException("Could not write to log file", self.name)
+
+
     def check_wt(self):
         try:
             coding = [lib['wild type']['coding'] for lib in self.libraries]
             sequence = [lib['wild type']['sequence'] for lib in self.libraries]
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key)
+            raise EnrichError("Missing required config value %s" % key, self.name)
         
         if len(set(coding)) != 1 or len(set(sequence)) != 1:
-            raise EnrichError("Inconsistent wild type sequences")
+            raise EnrichError("Inconsistent wild type sequences", self.name)
 
 
     def count(self):

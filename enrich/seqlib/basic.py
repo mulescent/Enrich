@@ -1,6 +1,6 @@
 from seqlib import SeqLib
 from enrich_error import EnrichError
-from fastq_util import *
+from fastq_util import read_fastq
 
 
 class BasicSeqLib(SeqLib):
@@ -9,25 +9,27 @@ class BasicSeqLib(SeqLib):
         self.libtype = "basic"
         try:
             if 'forward' in config['fastq'] and 'reverse' in config['fastq']:
-                raise EnrichError("Multiple FASTQ files specified")
+                raise EnrichError("Multiple FASTQ files specified", self.name)
             elif 'forward' in config['fastq']:
-                if check_fastq_extension(config['fastq']['forward']):
-                    self.reads = config['fastq']['forward']
-                    self.reverse_reads = False
+                self.reads = config['fastq']['forward']
+                self.reverse_reads = False
             elif 'reverse' in config['fastq']:
-                if check_fastq_extension(config['fastq']['reverse']):
-                    self.reads = config['fastq']['reverse']
-                    self.reverse_reads = True
+                self.reads = config['fastq']['reverse']
+                self.reverse_reads = True
             else:
                 raise KeyError("'forward' or 'reverse'")
+
             self.set_filters(config, {'min quality' : 0,
                                       'avg quality' : 0,
                                       'chastity' : False,
                                       'max mutations' : len(self.wt_dna)})
         except KeyError as key:
-            raise EnrichError("Missing required config value: %s" % key)
-        except ValueError as value:
-            raise EnrichError("Count not convert config value: %s" % value)
+            raise EnrichError("missing required config value: %s" % key, self.name)
+
+        try:
+            check_fastq(self.reads)
+        except IOError as fqerr:
+            raise EnrichError("FASTQ file error: %s" % fqerr, self.name)
 
 
     def count(self):
@@ -65,6 +67,5 @@ class BasicSeqLib(SeqLib):
                 self.filter_stats['total'] += 1
                 if self.verbose:
                     self.report_filtered_read(fq, filter_flags)
-
 
 

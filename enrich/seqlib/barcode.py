@@ -2,7 +2,7 @@ from __future__ import print_function
 from seqlib import SeqLib
 from collections import Counter
 from enrich_error import EnrichError
-from fastq_util import *
+from fastq_util import read_fastq, check_fastq
 
 
 class BarcodeMap(dict):
@@ -10,7 +10,7 @@ class BarcodeMap(dict):
         try:
             handle = open(mapfile, "U")
         except IOError:
-            raise EnrichError("Could not open barcode map file '%s'" % mapfile)
+            raise EnrichError("Could not open barcode map file '%s'" % mapfile, self.name)
 
         self.filename = mapfile
         for line in handle:
@@ -21,21 +21,21 @@ class BarcodeMap(dict):
             try:
                 barcode, variant = line.strip().split()
             except ValueError:
-                raise EnrichError("Unexpected barcode-variant line format")
+                raise EnrichError("Unexpected barcode-variant line format", self.name)
 
             if not re.match("^[ACGTacgt]+$", barcode):
                 raise EnrichError("BarcoBde DNA sequence contains unexpected "
-                                  "characters")
+                                  "characters", self.name)
             if not re.match("^[ACGTNacgtn]+$", variant):
                 raise EnrichError("Variant DNA sequence contains unexpected "
-                                  "characters")
+                                  "characters", self.name)
 
             barcode = barcode.upper()
             variant = variant.upper()
             if barcode in self:
                 if self[barcode] != variant:
                     raise EnrichError("Barcode '%s' assigned to multiple "
-                                      "unique variants" % barcode)
+                                      "unique variants" % barcode, self.name)
             else:
                 self[barcode] = variant
         handle.close()
@@ -75,16 +75,33 @@ class BarcodeSeqLib(SeqLib):
                 self.barcode_map = BarcodeMap(config['barcodes']['map file'])
             else:
                 self.barcode_map = None
+
+            if 'forward' in config['fastq'] and 'reverse' in config['fastq']:
+                raise EnrichError("Multiple FASTQ files specified", self.name)
+            elif 'forward' in config['fastq']:
+                self.reads = config['fastq']['forward']
+                self.reverse_reads = False
+            elif 'reverse' in config['fastq']:
+                self.reads = config['fastq']['reverse']
+                self.reverse_reads = True
+            else:
+                raise KeyError("'forward' or 'reverse'")
+
             self.set_filters(config, {'min quality' : 0,
                                       'avg quality' : 0,
                                       'chastity' : False,
                                       'max mutations' : len(self.wt_dna)})
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key)
+            raise EnrichError("Missing required config value %s" % key, self.name)
+
+        try:
+            check_fastq(self.reads)
+        except IOError as fqerr:
+            raise EnrichError("FASTQ file error: %s" % fqerr, self.name)
 
         if self.barcode_map is None: # not in local config
             if barcode_map is None:  # not provided on object creation
-                raise EnrichError("Barcode map not specified")
+                raise EnrichError("Barcode map not specified", self.name)
             else:
                 self.barcode_map = barcode_map
 
