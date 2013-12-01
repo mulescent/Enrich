@@ -6,6 +6,9 @@ import selection
 class Experiment(object):
     def __init__(self, config):
         try:
-
+            pass
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key)
+
+
+    

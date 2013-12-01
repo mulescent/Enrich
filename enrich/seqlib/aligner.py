@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
 
+
 _simple_similarity = {
         'A' : {'A' : 1, 'C' : -1, 'G' : -1, 'T' : -1, 'N' : 0},
         'C' : {'A' : -1, 'C' : 1, 'G' : -1, 'T' : -1, 'N' : 0},
@@ -9,6 +10,7 @@ _simple_similarity = {
         'N' : {'A' : 0, 'C' : 0, 'G' : 0, 'T' : 0, 'N' : 0},
         'gap' : -1
 }
+
 
 class Aligner(object):
     _MAT = 1    # match

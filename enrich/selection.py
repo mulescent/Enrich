@@ -1,9 +1,9 @@
 from __future__ import print_function
 from enrich_error import EnrichError
 from scipy import stats
-import seqlib.basic
-import seqlib.barcode
-import seqlib.overlap
+from seqlib.basic import BasicSeqLib
+from seqlib.barcode import BarcodeSeqLib, BarcodeMap
+from seqlib.overlap import OverlapSeqLib
 import os.path
 import math
 import itertools
@@ -14,18 +14,19 @@ class Selection(object):
         self.libraries = list()
         try:
             if 'barcodes' in config:
-                self.barcode_map_file = config['barcodes']['map file']
-                self.barcode_map = 
-                        seqlib.barcode.read_barcode_map(self.barcode_map_file)
+                if 'map file' in config['barcodes']:
+                    self.barcode_map = BarcodeMap(config['barcodes']
+                                                        ['map file'])
+                else:
+                    self.barcode_map = None
 
             for lib in config['libraries']:
                 if 'barcodes' in lib:
-                    new = seqlib.barcode.BarcodeSeqLib(lib, 
-                                barcode_map=self.barcode_map)
+                    new = BarcodeSeqLib(lib, barcode_map=self.barcode_map)
                 elif 'overlap' in lib:
-                    new = seqlib.overlap.OverlapSeqLib(lib)
+                    new = OverlapSeqLib(lib)
                 else:
-                    new = seqlib.basic.BasicSeqLib(lib)
+                    new = BasicSeqLib(lib)
                 self.libraries.append(new)
 
         except KeyError as key:

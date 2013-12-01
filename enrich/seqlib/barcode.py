@@ -5,41 +5,65 @@ from enrich_error import EnrichError
 from fastq_util import *
 
 
-def read_barcode_map(mapfile):
-    try:
-        handle = open(mapfile, "U")
-    except IOError:
-        raise EnrichError("Could not open barcode map file '%s'" % mapfile)
-
-    barcode_map = dict()
-    for line in handle:
-        # skip comments and whitespace-only lines
-        if len(line.strip()) == 0 or line[0] == '#':
-            continue
-
+class BarcodeMap(dict):
+    def __init__(self, mapfile):
         try:
-            barcode, variant = line.strip().split()
-        except ValueError:
-            raise EnrichError("Unexpected barcode-variant line")
+            handle = open(mapfile, "U")
+        except IOError:
+            raise EnrichError("Could not open barcode map file '%s'" % mapfile)
 
-        if not re.match("^[ACGTacgt]+$", barcode):
-            raise EnrichError("Barcode DNA sequence contains unexpected "
-                              "characters")
-        if not re.match("^[ACGTacgt]+$", variant):
-            raise EnrichError("Variant DNA sequence contains unexpected "
-                              "characters")
+        self.filename = mapfile
+        for line in handle:
+            # skip comments and whitespace-only lines
+            if len(line.strip()) == 0 or line[0] == '#':
+                continue
 
-        barcode = barcode.upper()
-        variant = variant.upper()
-        if barcode in barcode_map:
-            if barcode_map[barcode] != variant:
-                raise EnrichError("Barcode '%s' assigned to multiple "
-                                  "unique variants" % barcode)
-        else:
-            barcode_map[barcode] = variant
+            try:
+                barcode, variant = line.strip().split()
+            except ValueError:
+                raise EnrichError("Unexpected barcode-variant line format")
 
-    handle.close()
-    return barcode_map
+            if not re.match("^[ACGTacgt]+$", barcode):
+                raise EnrichError("BarcoBde DNA sequence contains unexpected "
+                                  "characters")
+            if not re.match("^[ACGTNacgtn]+$", variant):
+                raise EnrichError("Variant DNA sequence contains unexpected "
+                                  "characters")
+
+            barcode = barcode.upper()
+            variant = variant.upper()
+            if barcode in self:
+                if self[barcode] != variant:
+                    raise EnrichError("Barcode '%s' assigned to multiple "
+                                      "unique variants" % barcode)
+            else:
+                self[barcode] = variant
+        handle.close()
+
+        self.set_variants()
+
+
+    def set_variants(self):
+        """
+        Create a reverse-dictionary with variants as keys.
+
+        Variants are keys and values are a list of barcodes associated with 
+        that variant. Creation of this dictionary is optional for memory 
+        reasons.
+        """
+        self.variants = dict()
+        for bc, v in self.iteritems():
+            if v not in self.variants:
+                self.variants[v] = list()
+            self.variants[v].append(bc)
+
+
+    def del_variants(self):
+        """
+        Remove reference to the variants dictionary to save memory.
+        """
+        self.variants = None
+
 
 
 class BarcodeSeqLib(SeqLib):
@@ -47,7 +71,10 @@ class BarcodeSeqLib(SeqLib):
         SeqLib.__init__(self, config)
         self.libtype = "barcode"
         try:
-            self.barcode_map_file = config['barcodes']['map file']
+            if 'map file' in config['barcodes']:
+                self.barcode_map = BarcodeMap(config['barcodes']['map file'])
+            else:
+                self.barcode_map = None
             self.set_filters(config, {'min quality' : 0,
                                       'avg quality' : 0,
                                       'chastity' : False,
@@ -55,10 +82,12 @@ class BarcodeSeqLib(SeqLib):
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key)
 
-        if barcode_map is None:
-            self.barcode_map = read_barcode_map(self.barcode_map_file)
-        else:
-            self.barcode_map = barcode_map
+        if self.barcode_map is None: # not in local config
+            if barcode_map is None:  # not provided on object creation
+                raise EnrichError("Barcode map not specified")
+            else:
+                self.barcode_map = barcode_map
+
         self.counters['barcodes'] = Counter()
 
 
@@ -97,7 +126,7 @@ class BarcodeSeqLib(SeqLib):
                 self.counters['barcodes'].update([fq.sequence.upper()])
 
         # count variants associated with the barcodes
-        for bc, count in self.counters['barcodes'].most_common():
+        for bc, count in self.counters['barcodes'].iteritems():
             if bc in self.barcode_map:
                 variant = self.barcode_map[bc]
                 mutations = self.count_variant(variant, copies=count)
@@ -108,13 +137,14 @@ class BarcodeSeqLib(SeqLib):
                         self.report_filtered_variant(variant, count)
 
 
-
-
     def orphan_barcodes(self, mincount=0):
         orphans = Counter()
         for bc, count in self.counters['barcodes'].most_common():
-            if bc not in self.barcode_map and count > mincount:
-                orphans += Counter({bc : count})
+            if count > mincount:
+                if bc not in self.barcode_map:
+                    orphans += Counter({bc : count})
+            else:
+                break # sorted by count, so we can stop looking now
         return orphans
 
 
