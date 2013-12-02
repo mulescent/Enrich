@@ -87,6 +87,15 @@ class BarcodeSeqLib(SeqLib):
             else:
                 raise KeyError("'forward' or 'reverse'")
 
+            if 'start' in config['fastq']:
+                self.bc_start = config['fastq']['start']
+            else:
+                self.bc_start = 1
+            if 'length' in config['fastq']:
+                self.bc_length = config['fastq']['length']
+            else:
+                self.bc_length = 2147483647 # longer than any read... for now
+
             self.set_filters(config, {'min quality' : 0,
                                       'avg quality' : 0,
                                       'chastity' : False,
@@ -116,6 +125,7 @@ class BarcodeSeqLib(SeqLib):
 
         # count all the barcodes
         for fq in read_fastq(self.reads):
+            fq.trim_length(self.bc_length, start=self.bc_start)
             if self.reverse_reads:
                 fq.reverse()
 

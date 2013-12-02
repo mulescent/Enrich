@@ -1,6 +1,6 @@
 from seqlib import SeqLib
 from enrich_error import EnrichError
-from fastq_util import read_fastq
+from fastq_util import read_fastq, check_fastq
 
 
 class BasicSeqLib(SeqLib):

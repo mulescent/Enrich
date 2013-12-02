@@ -93,6 +93,8 @@ class SeqLib(object):
         self.name = "Unnamed" + self.__class__.__name__
         self.verbose = False
         self.log = None
+        self.wt_dna = None
+        self.wt_protein = None
 
         try:
             self.name = config['name']
@@ -112,11 +114,13 @@ class SeqLib(object):
             self.reference_offset = 0
 
         # initialize data
-        self.counters = {'variants' : Counter()}
+        self.counters = {'variants' : Counter(), 
+                         'excluded_variants' : Counter()}
         self.filters = None
         self.aligner = Aligner()
         self.libtype = None
         self.frequencies = dict()
+        self.ratios = dict()
 
 
     def enable_logging(self, log):
@@ -163,9 +167,10 @@ class SeqLib(object):
 
 
     def report_filtered_read(self, fq, filter_flags):
-        print("Filtered read (%s)" % \
+        print("Filtered read (%s) [%s]" % \
                 (', '.join(SeqLib._filter_messages[x] 
-                 for x in filter_flags if filter_flags[x])), file=self.log)
+                 for x in filter_flags if filter_flags[x]), self.name), 
+              file=self.log)
         print(fq, file=self.log)
 
 
@@ -177,8 +182,6 @@ class SeqLib(object):
         contain whitespace (which will be removed). If the sequence encodes a
         protein, it must be in-frame.
         """
-        self.wt_dna = None
-        self.wt_protein = None
         sequence = "".join(sequence.split()) # remove whitespace
 
         if not re.match("^[ACGTacgt]+$", sequence):
@@ -194,6 +197,8 @@ class SeqLib(object):
             self.wt_protein = ""
             for i in xrange(0, len(self.wt_dna), 3):
                 self.wt_protein += codon_table[self.wt_dna[i:i + 3]]
+        else:
+            self.wt_protein = None
 
 
     def align_variant(self, variant_dna):
@@ -288,7 +293,7 @@ class SeqLib(object):
                 mutation_strings.append(mut)
 
         if len(mutation_strings) > 0:
-            variant_string = '\t'.join(mutation_strings)
+            variant_string = ', '.join(mutation_strings)
         else:
             variant_string = WILD_TYPE_VARIANT
         if copies == 1:
@@ -299,7 +304,7 @@ class SeqLib(object):
         return mutation_strings
 
 
-    def count_mutations(self, indels=False):
+    def count_mutations(self, include_indels=False):
         """
         Count the individual mutations in all variants.
 
@@ -315,13 +320,13 @@ class SeqLib(object):
 
         for variant, count in self.counters['variants'].iteritems():
             if not has_indel(variant) or include_indels:
-                m = variant.split('\t')
-                self.counters['mutations_nt'] += 
-                        Counter(dict(izip_longest(m, [], fillvalue=count)))
+                muts = [x.strip() for x in variant.split(',')]
+                self.counters['mutations_nt'] += \
+                        Counter(dict(izip_longest(muts, [], fillvalue=count)))
                 if self.is_coding():
-                    m = re.findall("p\.\w{3}\d+\w{3}", variant)
-                    self.counters['mutations_aa'] += 
-                            Counter(dict(izip_longest(m, [], 
+                    muts = re.findall("p\.\w{3}\d+\w{3}", variant)
+                    self.counters['mutations_aa'] += \
+                            Counter(dict(izip_longest(muts, [], 
                                                       fillvalue=count)))
 
 
@@ -338,4 +343,35 @@ class SeqLib(object):
             total = float(sum(self.counters[key].values()))
             for x in self.counters[key]:
                 self.frequencies[key][x] = self.counters[key][x] / total
+
+
+    def calc_ratios(self, inputlib):
+        for key in self.frequencies:
+            self.ratios[key] = dict()
+            for x in self.frequencies[key]:
+                if x in inputlib.frequencies[key]:
+                    self.ratios[key][x] = self.frequencies[key][x] / \
+                            inputlib.frequencies[key][x]
+
+
+    def exclude_variant(self, variant):
+        """
+        Move a variant's data to the excluded list.
+
+        Removes the variant's count and frequency information from the 
+        'variants' data structure and adds it to the 'excluded_variants' data
+        structure. Does nothing of the variant is not found in this SeqLib.
+        """
+        if variant in self.counters['variants']:
+            self.counters['excluded_variants'] += \
+                    Counter({variant : self.counters['variants'][variant]})
+            del self.counters['variants'][variant]
+        if variant in self.frequencies['variants']:
+            self.frequencies['excluded_variants'][variant] = \
+                    self.frequencies['variants'][variant]
+            del self.frequencies['variants'][variant]
+        if variant in self.ratios['variants']:
+            self.ratios['excluded_variants'][variant] = \
+                    self.ratios['variants'][variant]
+            del self.ratios['variants'][variant]
 
