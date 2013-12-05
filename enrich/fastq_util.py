@@ -36,6 +36,8 @@ class FQRead(object):
     def __init__(self, header, sequence, header2, quality, qbase=33):
         if len(sequence) != len(quality):
             raise ValueError('different lengths for sequence and quality')
+        elif header[0] != '@' or header2[0] != '+':
+            raise ValueError('improperly formatted FASTQ record')
         else:
             self.header = header
             self.sequence = sequence
@@ -71,7 +73,7 @@ class FQRead(object):
         self.quality = self.quality[start - 1:end]
 
 
-    def trim_length(fq, length, start=1):
+    def trim_length(self, length, start=1):
         """
         Trim this read to contain length bases including start.
 

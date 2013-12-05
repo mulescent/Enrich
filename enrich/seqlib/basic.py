@@ -6,7 +6,6 @@ from fastq_util import read_fastq, check_fastq
 class BasicSeqLib(SeqLib):
     def __init__(self, config):
         SeqLib.__init__(self, config)
-        self.libtype = "basic"
         try:
             if 'forward' in config['fastq'] and 'reverse' in config['fastq']:
                 raise EnrichError("Multiple FASTQ files specified", self.name)
@@ -67,5 +66,7 @@ class BasicSeqLib(SeqLib):
                 self.filter_stats['total'] += 1
                 if self.verbose:
                     self.report_filtered_read(fq, filter_flags)
+
+        self.initialize_df()
 
 

@@ -12,4 +12,8 @@ if __name__ == "__main__":
 	test = Selection(config)
 	test.enable_logging(open(logfile_name, "w"))
 	test.count()
-	test.write_enrichments("/Users/afrubin/Code/seqlib_testing/output")
+#	test.count_mutations()
+	test.write_enrichments("/Users/afrubin/Code/forAlan/LS710/output")
+#	for lib in test.libraries:
+#		for bc, count in lib.orphan_barcodes().iteritems():
+#			print(bc, count, sep="\t")

@@ -1,8 +1,12 @@
 from __future__ import print_function
+import re
 from seqlib import SeqLib
 from collections import Counter
 from enrich_error import EnrichError
 from fastq_util import read_fastq, check_fastq
+
+# debugging
+from sys import stdout, stderr
 
 
 class BarcodeMap(dict):
@@ -69,7 +73,6 @@ class BarcodeMap(dict):
 class BarcodeSeqLib(SeqLib):
     def __init__(self, config, barcode_map=None):
         SeqLib.__init__(self, config)
-        self.libtype = "barcode"
         try:
             if 'map file' in config['barcodes']:
                 self.barcode_map = BarcodeMap(config['barcodes']['map file'])
@@ -162,6 +165,11 @@ class BarcodeSeqLib(SeqLib):
                     self.filter_stats['total'] += count # total counts reads
                     if self.verbose:
                         self.report_filtered_variant(variant, count)
+
+        if self.verbose:
+            self.report_filter_stats(self.log)
+        self.report_filter_stats(stderr)
+        self.initialize_df()
 
 
     def orphan_barcodes(self, mincount=0):

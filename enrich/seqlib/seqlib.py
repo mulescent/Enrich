@@ -1,6 +1,7 @@
 from __future__ import print_function
 import re
 import time
+import pandas as pd
 from sys import stdout, stderr
 from collections import Counter
 from itertools import izip_longest
@@ -52,7 +53,8 @@ aa_codes = {
         'Trp' : 'W', 'W' : 'Trp',
         'Tyr' : 'Y', 'Y' : 'Tyr',
         'Val' : 'V', 'V' : 'Val',
-        'Ter' : '*', '*' : 'Ter'
+        'Ter' : '*', '*' : 'Ter',
+        '?' : '???'
 }
 
 
@@ -95,14 +97,26 @@ class SeqLib(object):
         self.log = None
         self.wt_dna = None
         self.wt_protein = None
+        self.aligner = None
 
         try:
             self.name = config['name']
+            self.timepoint = int(config['timepoint'])
             self.set_wt(config['wild type']['sequence'], 
                         coding=config['wild type']['coding'])
+            if 'align variants' in config:
+                if config['align variants']:
+                    self.aligner = Aligner()
+                else:
+                    self.aligner = None
+            else:
+                self.aligner = None
+
         except KeyError as key:
             raise EnrichError("Missing required config value '%s'" % key, 
                               self.name)
+        except ValueError as value:
+            raise EnrichError("Invalid parameter value %s" % value, self.name)
 
         if 'reference offset' in config['wild type']:
             try:
@@ -114,13 +128,10 @@ class SeqLib(object):
             self.reference_offset = 0
 
         # initialize data
-        self.counters = {'variants' : Counter(), 
-                         'excluded_variants' : Counter()}
+        self.counters = {'variants' : Counter()}
+        self.data = dict()
         self.filters = None
-        self.aligner = Aligner()
-        self.libtype = None
-        self.frequencies = dict()
-        self.ratios = dict()
+        self.filter_stats = None
 
 
     def enable_logging(self, log):
@@ -247,7 +258,10 @@ class SeqLib(object):
         variant_dna = variant_dna.upper()
 
         if len(variant_dna) != len(self.wt_dna):
-            mutations = self.align_variant(variant_dna)
+            if self.aligner is not None:
+                mutations = self.align_variant(variant_dna)
+            else:
+                return None
         else:
             mutations = list()
             for i in xrange(len(variant_dna)):
@@ -256,12 +270,17 @@ class SeqLib(object):
                     mutations.append((i, "%s>%s" % \
                                        (self.wt_dna[i], variant_dna[i])))
                     if len(mutations) > self.filters['max mutations']:
-                        mutations = self.align_variant(variant_dna)
-                        break
-
-        if len(mutations) > self.filters['max mutations']: # post-alignment
-            # discard this variant
-            return None
+                        if self.aligner is not None:
+                            mutations = self.align_variant(variant_dna)
+                            if len(mutations) > self.filters['max mutations']:
+                                # too many mutations post-alignment
+                                return None
+                            else:
+                                # stop looping over this variant
+                                break
+                        else:
+                            # too many mutations and not using aligner
+                            return None
 
         mutation_strings = list()
         if self.is_coding():
@@ -308,70 +327,72 @@ class SeqLib(object):
         """
         Count the individual mutations in all variants.
 
-        If indels is False, all mutations in a variant that contains an 
-        insertion/deletion/duplication will not be counted.
+        If include_indels is False, all mutations in a variant that contains 
+        an insertion/deletion/duplication will not be counted.
 
         For coding sequences, amino acid substitutions are counted
         independently of the corresponding nucleotide change.
         """
-        self.counters['mutations_nt'] = Counter()
+        nt = Counter()
         if self.is_coding():
-            self.counters['mutations_aa'] = Counter()
+            aa = Counter()
 
-        for variant, count in self.counters['variants'].iteritems():
-            if not has_indel(variant) or include_indels:
+        for variant in self.data['variants'].index:
+            if self.data['variants']['excluded'][variant]:
+                continue
+            elif not has_indel(variant) or include_indels:
                 muts = [x.strip() for x in variant.split(',')]
-                self.counters['mutations_nt'] += \
-                        Counter(dict(izip_longest(muts, [], fillvalue=count)))
+                nt += Counter(dict(izip_longest(muts, [], 
+                            fillvalue=self.data['variants']['count'][variant])))
                 if self.is_coding():
                     muts = re.findall("p\.\w{3}\d+\w{3}", variant)
-                    self.counters['mutations_aa'] += \
-                            Counter(dict(izip_longest(muts, [], 
-                                                      fillvalue=count)))
+                    aa += Counter(dict(izip_longest(muts, [], 
+                            fillvalue=self.data['variants']['count'][variant])))
+
+        self.data['mutations_nt'] = \
+                pd.DataFrame.from_dict(nt, orient="index", dtype="int32")
+        if self.is_coding():
+            self.data['mutations_aa'] = \
+                    pd.DataFrame.from_dict(aa, orient="index", 
+                                               dtype="int32")
 
 
-    def print_counter(self, key, min_count=0, indels=True, file=stdout):
-        for variant, count in self.counters[key].most_common():
-            if count >= min_count:
-                if not has_indel(variant) or indels:
-                    print("%d\t%s" % (count, variant), file=file)
+    def initialize_df(self, clear=True):
+        """
+        Set up the DataFrame after the variants have been counted.
 
-
-    def calc_frequencies(self):
-        for key in self.counters:
-            self.frequencies[key] = dict()
-            total = float(sum(self.counters[key].values()))
-            for x in self.counters[key]:
-                self.frequencies[key][x] = self.counters[key][x] / total
+        If clear is True, the reference to the local counters object will be 
+        removed after the DataFrames are created. Note that the counts are 
+        stored as 32-bit integers (and will overflow if more than 2 billion 
+        of the same variant is counted).
+        """
+        for key in self.counters: # 'variants' and optionally 'barcodes'
+            self.data[key] = pd.DataFrame.from_dict(self.counters[key], 
+                                                    orient="index", 
+                                                    dtype="int32")
+            self.data[key].columns = ['count']
+            self.data[key]['frequency'] = \
+                    self.data[key]['count'] / float(self.data[key]['count'].sum())
+            self.data[key]['excluded'] = False
+        if clear:
+            self.counters = None
 
 
     def calc_ratios(self, inputlib):
-        for key in self.frequencies:
-            self.ratios[key] = dict()
-            for x in self.frequencies[key]:
-                if x in inputlib.frequencies[key]:
-                    self.ratios[key][x] = self.frequencies[key][x] / \
-                            inputlib.frequencies[key][x]
+        for key in self.data: # 'variants' and optionally 'barcodes'
+            self.data[key]['ratio'] = \
+                    self.data[key]['frequency'] / inputlib.data[key]['frequency']
 
 
-    def exclude_variant(self, variant):
-        """
-        Move a variant's data to the excluded list.
+    def report_filter_stats(self, handle):
+        print('Filtering stats for "%s"' % self.name, file=handle)
+        for key in sorted(self.filter_stats):
+            if key == 'total':
+                continue # print this last
+            if self.filter_stats[key] > 0:
+                print("", SeqLib._filter_messages[key], self.filter_stats[key], 
+                      sep="\t", file=handle)
 
-        Removes the variant's count and frequency information from the 
-        'variants' data structure and adds it to the 'excluded_variants' data
-        structure. Does nothing of the variant is not found in this SeqLib.
-        """
-        if variant in self.counters['variants']:
-            self.counters['excluded_variants'] += \
-                    Counter({variant : self.counters['variants'][variant]})
-            del self.counters['variants'][variant]
-        if variant in self.frequencies['variants']:
-            self.frequencies['excluded_variants'][variant] = \
-                    self.frequencies['variants'][variant]
-            del self.frequencies['variants'][variant]
-        if variant in self.ratios['variants']:
-            self.ratios['excluded_variants'][variant] = \
-                    self.ratios['variants'][variant]
-            del self.ratios['variants'][variant]
+        print("", 'total', self.filter_stats['total'], sep="\t", file=handle)
+
 

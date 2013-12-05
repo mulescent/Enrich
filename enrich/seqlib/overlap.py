@@ -1,12 +1,11 @@
 from seqlib import SeqLib
 from enrich_error import EnrichError
-from fastq_util import read_fastq_multi, check_fastq
+from fastq_util import read_fastq_multi, check_fastq, FQRead
 
 
 class OverlapSeqLib(SeqLib):
     def __init__(self, config):
         SeqLib.__init__(self, config)
-        self.libtype = "overlap"
         try:
             self.forward = config['fastq']['forward']
             self.reverse = config['fastq']['reverse']
@@ -27,9 +26,10 @@ class OverlapSeqLib(SeqLib):
                                       'chastity' : False,
                                       'fuser failure' : True})
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key, self.name)
+            raise EnrichError("Missing required config value %s" % key, 
+                              self.name)
         except ValueError as value:
-            raise EnrichError("Invalid overlap parameter value %s" % value, self.name)
+            raise EnrichError("Invalid parameter value %s" % value, self.name)
 
         try:
             check_fastq(self.forward)
@@ -38,19 +38,20 @@ class OverlapSeqLib(SeqLib):
             raise EnrichError("FASTQ file error: %s" % fqerr, self.name)
 
 
-
-
     def fuse_reads(self, fwd, rev):
         rev.reverse()
 
         rev_extra_start = len(rev) - self.rev_start + 1
         fwd_end = self.fwd_start + self.overlap_length - 1
         fused = FQRead(header=fwd.header, 
-                       sequence=list(fwd.sequence[:fwd_end] + 
-                                     rev.sequence[rev_extra_start:]),
+                       sequence="A",
                        header2=fwd.header2,
-                       quality=fwd.quality[:fwd_end] + 
-                                     rev.quality[rev_extra_start:])
+                       quality="#",
+                       qbase=fwd.qbase)
+        fused.sequence = list(fwd.sequence[:fwd_end] + \
+                                     rev.sequence[rev_extra_start:])
+        fused.quality = fwd.quality[:fwd_end] + \
+                                     rev.quality[rev_extra_start:]
 
         mismatches = 0
         for i in xrange(self.overlap_length):
@@ -72,6 +73,7 @@ class OverlapSeqLib(SeqLib):
         if mismatches > self.max_overlap_mismatches:
             return None # fusing failed
 
+        fused.sequence = "".join(fused.sequence)
         if self.trim:
             fused.trim_length(self.fwd_start, self.overlap_length)
         return fused
@@ -131,4 +133,7 @@ class OverlapSeqLib(SeqLib):
                     self.filter_stats['total'] += 1
                     if self.verbose:
                         self.report_filtered_read(fused, filter_flags)
+
+        self.initialize_df()
+
 
