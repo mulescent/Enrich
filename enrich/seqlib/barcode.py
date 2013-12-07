@@ -1,7 +1,6 @@
 from __future__ import print_function
 import re
 from seqlib import SeqLib
-from collections import Counter
 from enrich_error import EnrichError
 from fastq_util import read_fastq, check_fastq
 
@@ -117,7 +116,7 @@ class BarcodeSeqLib(SeqLib):
             else:
                 self.barcode_map = barcode_map
 
-        self.counters['barcodes'] = Counter()
+        self.counters['barcodes'] = dict()
 
 
     def count(self):
@@ -153,7 +152,10 @@ class BarcodeSeqLib(SeqLib):
                 if self.verbose:
                     self.report_filtered_read(fq, filter_flags)
             else: # passed quality filtering
-                self.counters['barcodes'].update([fq.sequence.upper()])
+                try:
+                    self.counters['barcodes'][fq.sequence.upper()] += 1
+                except KeyError:
+                    self.counters['barcodes'][fq.sequence.upper()] = 1
 
         # count variants associated with the barcodes
         for bc, count in self.counters['barcodes'].iteritems():
@@ -173,13 +175,11 @@ class BarcodeSeqLib(SeqLib):
 
 
     def orphan_barcodes(self, mincount=0):
-        orphans = Counter()
-        for bc, count in self.counters['barcodes'].most_common():
+        orphans = dict()
+        for bc, count in self.counters['barcodes'].iteritems():
             if count > mincount:
                 if bc not in self.barcode_map:
-                    orphans += Counter({bc : count})
-            else:
-                break # sorted by count, so we can stop looking now
+                    orphans[bc] = count
         return orphans
 
 

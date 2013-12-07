@@ -3,7 +3,6 @@ import re
 import time
 import pandas as pd
 from sys import stdout, stderr
-from collections import Counter
 from itertools import izip_longest
 from enrich_error import EnrichError
 from aligner import Aligner
@@ -128,7 +127,7 @@ class SeqLib(object):
             self.reference_offset = 0
 
         # initialize data
-        self.counters = {'variants' : Counter()}
+        self.counters = {'variants' : dict()}
         self.data = dict()
         self.filters = None
         self.filter_stats = None
@@ -315,10 +314,10 @@ class SeqLib(object):
             variant_string = ', '.join(mutation_strings)
         else:
             variant_string = WILD_TYPE_VARIANT
-        if copies == 1:
-            self.counters['variants'].update([variant_string])
-        else:
-            self.counters['variants'] += Counter({variant_string : copies})
+        try:
+            self.counters['variants'][variant_string] += copies
+        except KeyError:
+            self.counters['variants'][variant_string] = copies
 
         return mutation_strings
 

@@ -18,15 +18,21 @@ from sys import stdout, stderr
 
 EnrichmentStats = namedtuple("EnrichmentStats", "score, r_sq")
 
-def enrichment_apply_func(row, library_times):
+def enrichment_apply_func(row, timepoints):
     if math.isnan(row[0]):
+        # not present in input library
         score = float("NaN")
         r_sq = float("NaN")
     else:
+        row = row.values
         ratios = row[np.invert(np.isnan(row))]
-        times = library_times[np.invert(np.isnan(row))]
-        if len(ratios) == 2:
-            # rise over run!
+        times = timepoints[np.invert(np.isnan(row))]
+        if len(ratios) == 1:
+            # only present in input library
+            score = float("NaN")
+            r_sq = float("NaN")
+        elif len(ratios) == 2:
+            # rise over run
             score = (ratios[1] - ratios[0]) / (times[1] - times[0])
             r_sq = float("NaN")
         else:
@@ -153,7 +159,7 @@ class Selection(object):
                         rsuffix=".lib%d" % lib.timepoint)
             # append enrichment data
             output_df = output_df.join(self.enrichments[key], how='outer')
-            #output_df = output_df[np.invert(output_df['excluded'])]
+            output_df = output_df[np.invert(output_df['excluded'])]
 
             # write the file
             output_df.to_csv(fname, sep="\t", na_rep="NaN", 
@@ -162,19 +168,23 @@ class Selection(object):
 
     def calc_enrichments(self, key):
         # make a DataFrame containing all the ratios
-        ratio_df = pd.DataFrame(self.libraries[0].data[key]['ratio'])
-        ratio_df.columns = ['ratio.lib%d' % self.libraries[0].timepoint]
-        library_times = [self.libraries[0].timepoint]
-        for lib in self.libraries[1:]:
-            ratio_df.join(pd.DataFrame(lib.data[key]['ratio'] \
-                    [np.invert(lib.data[key]['excluded'])]), 
-                    rsuffix=".lib%d" % lib.timepoint, how='outer')
-            library_times.append(lib.timepoint)
-
-        library_times = np.asarray(library_times)
+        ratio_df = self.libcolumns(key, 'ratio')
+        timepoints = np.asarray([lib.timepoint for lib in self.libraries])
         self.enrichments[key] = ratio_df.apply(enrichment_apply_func, axis=1, 
-                                               args=[library_times])
+                                               args=[timepoints])
         self.enrichments[key]['excluded'] = False
+
+
+    def libcolumns(self, key, column):
+        lib_df = pd.DataFrame(self.libraries[0].data[key][column])
+        cnames = ['%s.lib%d' % (column, self.libraries[0].timepoint)]
+        for lib in self.libraries[1:]:
+            lib_df = lib_df.join(pd.DataFrame(lib.data[key][column] \
+                    [np.invert(lib.data[key]['excluded'])]),
+                    rsuffix="%d" % lib.timepoint, how='outer')
+            cnames.append('%s.lib%d' % (column, lib.timepoint))
+        lib_df.columns = cnames
+        return lib_df
 
 
     def filter_barcodes(self):
