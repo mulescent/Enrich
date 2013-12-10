@@ -11,7 +11,10 @@ if __name__ == "__main__":
 	config = json.load(open(sys.argv[1]))
 	test = Selection(config)
 	test.enable_logging(open(logfile_name, "w"))
-	test.count()
+	test.get_counts()
+	test.calc_frequencies()
+	test.calc_ratios()
+	test.calc_enrichments()
 #	test.count_mutations()
 	test.write_enrichments("/Users/afrubin/Code/forAlan/LS710/output")
 #	for lib in test.libraries:

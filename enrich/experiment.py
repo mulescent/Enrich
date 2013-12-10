@@ -8,10 +8,20 @@ class Experiment(object):
         self.name = "Unnamed" + self.__class__.__name__
         self.verbose = False
         self.log = None
+        self.conditions = dict()
+        self.control = None
 
         try:
             self.name = config['name']
-            pass
+            for cnd in config['conditions']:
+                if not cnd['label'].isalnum():
+                    raise EnrichError("Alphanumeric label required for condition '%s'" % cnd['label'], self.name)
+                self.conditions[cnd['label']] = cnd['selections']
+                if cnd['control']:
+                    if self.control is None:
+                        self.control = self.conditions[cnd['label']]
+                    else:
+                        raise EnrichError("Multiple control conditions", self.name)
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, 
                               self.name)

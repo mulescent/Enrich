@@ -3,75 +3,16 @@ import re
 from seqlib import SeqLib
 from enrich_error import EnrichError
 from fastq_util import read_fastq, check_fastq
+import pandas as pd
 
 # debugging
 from sys import stdout, stderr
 
 
-class BarcodeMap(dict):
-    def __init__(self, mapfile):
-        try:
-            handle = open(mapfile, "U")
-        except IOError:
-            raise EnrichError("Could not open barcode map file '%s'" % mapfile, self.name)
-
-        self.filename = mapfile
-        for line in handle:
-            # skip comments and whitespace-only lines
-            if len(line.strip()) == 0 or line[0] == '#':
-                continue
-
-            try:
-                barcode, variant = line.strip().split()
-            except ValueError:
-                raise EnrichError("Unexpected barcode-variant line format", self.name)
-
-            if not re.match("^[ACGTacgt]+$", barcode):
-                raise EnrichError("BarcoBde DNA sequence contains unexpected "
-                                  "characters", self.name)
-            if not re.match("^[ACGTNacgtn]+$", variant):
-                raise EnrichError("Variant DNA sequence contains unexpected "
-                                  "characters", self.name)
-
-            barcode = barcode.upper()
-            variant = variant.upper()
-            if barcode in self:
-                if self[barcode] != variant:
-                    raise EnrichError("Barcode '%s' assigned to multiple "
-                                      "unique variants" % barcode, self.name)
-            else:
-                self[barcode] = variant
-        handle.close()
-
-        self.set_variants()
-
-
-    def set_variants(self):
-        """
-        Create a reverse-dictionary with variants as keys.
-
-        Variants are keys and values are a list of barcodes associated with 
-        that variant. Creation of this dictionary is optional for memory 
-        reasons.
-        """
-        self.variants = dict()
-        for bc, v in self.iteritems():
-            if v not in self.variants:
-                self.variants[v] = list()
-            self.variants[v].append(bc)
-
-
-    def del_variants(self):
-        """
-        Remove reference to the variants dictionary to save memory.
-        """
-        self.variants = None
-
-
-
 class BarcodeSeqLib(SeqLib):
-    def __init__(self, config, barcode_map=None):
-        SeqLib.__init__(self, config)
+    def __init__(self, config, parent=True):
+        if parent:
+            SeqLib.__init__(self, config)
         try:
             if 'map file' in config['barcodes']:
                 self.barcode_map = BarcodeMap(config['barcodes']['map file'])
@@ -110,16 +51,12 @@ class BarcodeSeqLib(SeqLib):
         except IOError as fqerr:
             raise EnrichError("FASTQ file error: %s" % fqerr, self.name)
 
-        if self.barcode_map is None: # not in local config
-            if barcode_map is None:  # not provided on object creation
-                raise EnrichError("Barcode map not specified", self.name)
-            else:
-                self.barcode_map = barcode_map
-
-        self.counters['barcodes'] = dict()
+        self.counts['barcodes'] = None
 
 
     def count(self):
+        self.counts['barcodes'] = dict()
+
         # flags for verbose output of filtered reads
         filter_flags = dict()
         for key in self.filters:
@@ -153,39 +90,14 @@ class BarcodeSeqLib(SeqLib):
                     self.report_filtered_read(fq, filter_flags)
             else: # passed quality filtering
                 try:
-                    self.counters['barcodes'][fq.sequence.upper()] += 1
+                    self.counts['barcodes'][fq.sequence.upper()] += 1
                 except KeyError:
-                    self.counters['barcodes'][fq.sequence.upper()] = 1
+                    self.counts['barcodes'][fq.sequence.upper()] = 1
 
-        # count variants associated with the barcodes
-        for bc, count in self.counters['barcodes'].iteritems():
-            if bc in self.barcode_map:
-                variant = self.barcode_map[bc]
-                mutations = self.count_variant(variant, copies=count)
-                if mutations is None: # variant has too many mutations
-                    self.filter_stats['max mutations'] += 1
-                    self.filter_stats['total'] += count # total counts reads
-                    if self.verbose:
-                        self.report_filtered_variant(variant, count)
-
-        if self.verbose:
-            self.report_filter_stats(self.log)
-        self.report_filter_stats(stderr)
-        self.initialize_df()
-
-
-    def orphan_barcodes(self, mincount=0):
-        orphans = dict()
-        for bc, count in self.counters['barcodes'].iteritems():
-            if count > mincount:
-                if bc not in self.barcode_map:
-                    orphans[bc] = count
-        return orphans
-
-
-    def report_filtered_variant(self, variant, count):
-        print("Filtered variant (%s)" % \
-                    (SeqLib._filter_messages['max mutations']), file=self.log)
-        print(variant, file=self.log)
-        print("quantity=", count, sep="", file=self.log)
+        self.counts['barcodes'] = \
+                pd.DataFrame.from_dict(self.counts['barcodes'], 
+                                       orient="index", dtype="int32")
+        if len(self.counts['barcodes']) == 0:
+            raise EnrichError("Failed to count barcodes", self.name)
+        self.counts['barcodes'].columns = ['count']
 

@@ -2,7 +2,7 @@ from __future__ import print_function
 from enrich_error import EnrichError
 from scipy import stats
 from seqlib.basic import BasicSeqLib
-from seqlib.barcode import BarcodeSeqLib, BarcodeMap
+from seqlib.barcodevariant import BarcodeVariantSeqLib, BarcodeMap
 from seqlib.overlap import OverlapSeqLib
 import os
 import math
@@ -10,13 +10,11 @@ import itertools
 import time
 import pandas as pd
 import numpy as np
-from collections import namedtuple
+from collections import Counter
 
 
 from sys import stdout, stderr
 
-
-EnrichmentStats = namedtuple("EnrichmentStats", "score, r_sq")
 
 def enrichment_apply_func(row, timepoints):
     if math.isnan(row[0]):
@@ -45,9 +43,14 @@ def enrichment_apply_func(row, timepoints):
 class Selection(object):
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
-        self.libraries = list()
+        self.libraries = dict()
+        self.data = dict()
+        self.timepoints = list()
         self.verbose = False
         self.log = None
+
+        # PARAMETERIZE
+        self.pickle_dir = "."
 
         try:
             self.name = config['name']
@@ -58,25 +61,55 @@ class Selection(object):
                 else:
                     self.barcode_map = None
 
+            libnames = list()
             for lib in config['libraries']:
                 if 'barcodes' in lib:
-                    new = BarcodeSeqLib(lib, barcode_map=self.barcode_map)
+                    if 'wild type' in lib:
+                        new = BarcodeVariantSeqLib(lib, 
+                                    barcode_map=self.barcode_map)
+                    else:
+                        new = BarcodeSeqLib(lib)
                 elif 'overlap' in lib:
                     new = OverlapSeqLib(lib)
                 else:
                     new = BasicSeqLib(lib)
-                self.libraries.append(new)
-            if len(set([lib.name for lib in self.libraries])) != \
-                    len(self.libraries):
+
+                if new.timepoint not in self.libraries:
+                    self.libraries[new.timepoint] = list()
+                self.libraries[new.timepoint].append(new)
+                libnames.append(new.name)
+            self.timepoints = sorted(self.libraries.keys())
+
+            if len(set(libnames)) != len(libnames):
                 raise EnrichError("Non-unique library names", self.name)
-            self.libraries.sort(key=lambda x: x.timepoint)
 
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key, self.name)
+            raise EnrichError("Missing required config value %s" % key, 
+                              self.name)
 
-        if len(self.libraries) == 0:
-            raise EnrichError("Selection class has no libraries", self.name)
-        self.check_wt()
+        if len(self.libraries.keys()) < 2:
+            raise EnrichError("Insufficient number of timepoints", 
+                              self.name)
+
+        if 0 not in self.timepoints:
+            raise EnrichError("Missing timepoint 0", self.name)
+        if self.timepoints[0] != 0:
+            raise EnrichError("Invalid negative timepoint", self.name)
+
+        # identify what kind of counts data is present in all timepoints
+        dtype_counts = list()
+        for tp in self.timepoints:
+            for lib in self.libraries[tp]:
+                dtype_counts.extend(lib.counts.keys())
+        dtype_counts = Counter(dtype_counts)
+        for dtype in dtype_counts:
+            if dtype_counts[dtype] == len(config['libraries']):
+                self.data[dtype] = dict()
+        if 'barcodes_unmapped' in self.data.keys(): # special case for BarcodeVariantSeqLib
+            del self.data['barcodes_unmapped']
+        if len(self.data.keys()) == 0:
+            raise EnrichError("No count data present across all timepoints", 
+                              self.name)
 
         try:
             if 'correction' in config:
@@ -103,32 +136,67 @@ class Selection(object):
                         (self.name, time.asctime()), file=self.log)
         except (IOError, AttributeError):
             raise EnrichException("Could not write to log file", self.name)
-        for lib in self.libraries:
-            lib.enable_logging(log)
+        for timepoint in self.libraries:
+            for lib in self.libraries[timepoint]:
+                lib.enable_logging(log)
 
 
-    def check_wt(self):
-        try:
-            coding = [lib.is_coding() for lib in self.libraries]
-            sequence = [lib.wt_dna for lib in self.libraries]
-        except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key, self.name)
-        
-        if len(set(coding)) != 1 or len(set(sequence)) != 1:
-            raise EnrichError("Inconsistent wild type sequences", self.name)
+    def get_counts(self):
+        # calculate counts for each timepoint
+        for tp in self.timepoints:
+            for lib in self.libraries[tp]:
+                lib.count()
+            for dtype in self.data:
+                tp_data = self.libraries[tp][0].counts[dtype]
+                for lib in self.libraries[tp][1:]:
+                    tp_data = tp_data.add(lib.counts[dtype], fill_value=0)
+                self.data[dtype][tp] = tp_data
+            for lib in self.libraries[tp]:
+                lib.save_counts(self.pickle_dir)
+
+        # combine into a single dataframe
+        for dtype in self.data:
+            tp_data = self.data[dtype][0]
+            cnames = ["%s.0" % x for x in self.data[dtype][0].columns]
+            for tp in self.timepoints[1:]:
+                tp_data = tp_data.join(self.data[dtype][tp], 
+                                     how="outer",
+                                     rsuffix="%s" % tp)
+                cnames += ["%s.%d" % (x, tp) for x in \
+                           self.data[dtype][tp].columns]
+            tp_data.columns = cnames
+            # remove data that are not in the initial timepoint
+            tp_data = tp_data[np.invert(np.isnan(tp_data['count.0']))]
+            self.data[dtype] = tp_data
 
 
-    def count(self):
-        for lib in self.libraries:
-            lib.count()
-            lib.calc_ratios(self.libraries[0])
 
-#        self.correct_frequencies()
-        for key in self.libraries[0].data:
-            if all(key in lib.data for lib in self.libraries):
-                self.calc_enrichments(key)
-        if 'barcodes' in self.enrichments:
-            self.filter_barcodes()
+    def calc_frequencies(self):
+        for dtype in self.data:
+            for tp in self.timepoints:
+                self.data[dtype]['frequency.%d' % tp] =  \
+                    self.data[dtype]['count.%d' % tp] / \
+                    float(self.data[dtype]['count.%d' % tp].sum())
+
+
+    def calc_ratios(self):
+        for dtype in self.data:
+            for tp in self.timepoints:
+                if tp == 0: # input library
+                    self.data[dtype]['ratio.%d' % tp] = 1.0
+                else:
+                    self.data[dtype]['ratio.%d' % tp] =  \
+                            self.data[dtype]['frequency.%d' % tp] / \
+                            self.data[dtype]['frequency.0']
+
+
+    def calc_enrichments(self):
+        for dtype in self.data:
+            # apply the enrichment-calculating function to a DataFrame
+            # containing only ratio data
+            ratio_df = self.data[dtype][['ratio.%d' % x for x in self.timepoints]]
+            enrichments = ratio_df.apply(enrichment_apply_func, axis=1, args=[np.asarray(self.timepoints)])
+            self.data[dtype] = self.data[dtype].join(enrichments)
 
 
     def count_mutations(self):
@@ -141,50 +209,32 @@ class Selection(object):
             self.calc_enrichments(key)
 
 
-    def correct_frequencies(self):
-        pass
+    def adjust_frequencies(self, frequencies, timepoint, dtype):
+        """
+        Replace frequencies with a corrected frequency for given timepoint.
+
+        Corrected values overwrite the "raw" frequencies in the data
+        DataFrame. To adjust all frequencies in the DataFrame, this method 
+        must be invoked once for each timepoint.
+
+        Frequencies must be a DataFrame with one column. Indices present in 
+        freuqences that are not present in the Selection DataFrame will not 
+        be added to the DataFrame.
+        """
+        if timepoint not in self.timepoints:
+            raise EnrichError("Timepoint not found", self.name)
+        else:
+            self.data[dtype]['frequency.%d' % timepoint] = frequencies[0]
+
 
     def write_enrichments(self, directory):
         enrichment_dir = os.path.join(directory, "enrichments")
         if not os.path.exists(enrichment_dir):
             os.makedirs(enrichment_dir)
-        for key in (self.enrichments):
-            fname = os.path.join(enrichment_dir, key + ".tsv")
-            # create a new DataFrame for output
-            # start with the first SeqLibs
-            output_df = self.libraries[0].data[key].drop(['ratio', 'excluded'], axis=1)
-            # append additional SeqLibs
-            for lib in self.libraries[1:]:
-                output_df = output_df.join(lib.data[key].drop('excluded', axis=1), how='outer',
-                        rsuffix=".lib%d" % lib.timepoint)
-            # append enrichment data
-            output_df = output_df.join(self.enrichments[key], how='outer')
-            output_df = output_df[np.invert(output_df['excluded'])]
-
-            # write the file
-            output_df.to_csv(fname, sep="\t", na_rep="NaN", 
+        for dtype in self.data:
+            fname = os.path.join(enrichment_dir, dtype + ".tsv")
+            self.data[dtype].to_csv(fname, sep="\t", na_rep="NaN", 
                              index_label="sequence")
-
-
-    def calc_enrichments(self, key):
-        # make a DataFrame containing all the ratios
-        ratio_df = self.libcolumns(key, 'ratio')
-        timepoints = np.asarray([lib.timepoint for lib in self.libraries])
-        self.enrichments[key] = ratio_df.apply(enrichment_apply_func, axis=1, 
-                                               args=[timepoints])
-        self.enrichments[key]['excluded'] = False
-
-
-    def libcolumns(self, key, column):
-        lib_df = pd.DataFrame(self.libraries[0].data[key][column])
-        cnames = ['%s.lib%d' % (column, self.libraries[0].timepoint)]
-        for lib in self.libraries[1:]:
-            lib_df = lib_df.join(pd.DataFrame(lib.data[key][column] \
-                    [np.invert(lib.data[key]['excluded'])]),
-                    rsuffix="%d" % lib.timepoint, how='outer')
-            cnames.append('%s.lib%d' % (column, lib.timepoint))
-        lib_df.columns = cnames
-        return lib_df
 
 
     def filter_barcodes(self):

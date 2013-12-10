@@ -1,11 +1,11 @@
-from seqlib import SeqLib
+from variant import VariantSeqLib
 from enrich_error import EnrichError
 from fastq_util import read_fastq_multi, check_fastq, FQRead
 
 
-class OverlapSeqLib(SeqLib):
+class OverlapSeqLib(VariantSeqLib):
     def __init__(self, config):
-        SeqLib.__init__(self, config)
+        VariantSeqLib.__init__(self, config)
         try:
             self.forward = config['fastq']['forward']
             self.reverse = config['fastq']['reverse']
@@ -80,6 +80,8 @@ class OverlapSeqLib(SeqLib):
 
 
     def count(self):
+        self.counts['variants'] = dict()
+
         # flags for verbose output of filtered reads
         filter_flags = dict()
         for key in self.filters:
@@ -134,6 +136,11 @@ class OverlapSeqLib(SeqLib):
                     if self.verbose:
                         self.report_filtered_read(fused, filter_flags)
 
-        self.initialize_df()
+        self.counts['variants'] = \
+                pd.DataFrame.from_dict(self.counts['variants'], 
+                                       orient="index", dtype="int32")
+        if len(self.counts['variants']) == 0:
+            raise EnrichError("Failed to count variants", self.name)
+        self.counts['variants'].columns = ['count']
 
 
