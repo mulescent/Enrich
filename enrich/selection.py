@@ -16,6 +16,30 @@ from collections import Counter
 from sys import stdout, stderr
 
 
+def barcode_variation(variant, barcode_data, mapping):
+    """
+    Calculate the coefficient of variation for a variant's barcodes.
+    """
+    try:
+        barcodes = mapping.variants[variant]
+    except KeyError: # variant not in mapping
+        return None
+    barcodes = [x for x in barcodes if x in barcode_data.index]
+    if len(barcodes) > 0:
+        cv = stats.variation(barcode_data.ix[barcodes]['score'])
+        return cv
+    else:
+        return None
+
+
+def barcode_varation_filter(row, cutoff, barcode_data, mapping):
+    cv = barcode_variation(row.name, barcode_data, mapping)
+    if cv > cutoff:
+        return False
+    else:
+        return True
+
+
 def enrichment_apply_func(row, timepoints):
     if math.isnan(row[0]):
         # not present in input library
@@ -45,12 +69,13 @@ class Selection(object):
         self.name = "Unnamed" + self.__class__.__name__
         self.libraries = dict()
         self.data = dict()
+        self.data_file = dict()
         self.timepoints = list()
         self.verbose = False
         self.log = None
 
         # PARAMETERIZE
-        self.pickle_dir = "."
+        self.hdf_dir = "."
 
         try:
             self.name = config['name']
@@ -152,7 +177,7 @@ class Selection(object):
                     tp_data = tp_data.add(lib.counts[dtype], fill_value=0)
                 self.data[dtype][tp] = tp_data
             for lib in self.libraries[tp]:
-                lib.save_counts(self.pickle_dir)
+                lib.save_counts(self.hdf_dir, clear=True)
 
         # combine into a single dataframe
         for dtype in self.data:
@@ -237,5 +262,36 @@ class Selection(object):
                              index_label="sequence")
 
 
-    def filter_barcodes(self):
-        pass
+    def save_data(self, directory, keys=None, clear=False):
+        if keys is None:
+            keys = self.data.keys()
+        for key in keys:
+            output_dir = os.path.join(directory, key)
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
+            fname = fname.replace(' ', '_')
+            self.data_file[key] = os.path.join(output_dir, fname + ".h5")
+            self.data[key].to_hdf(self.data_file[key], 'table', append=False)
+            if clear:
+                self.data[key] = None
+
+
+    def load_data(self):
+        for key in self.data_file:
+            self.data[key] = pd.read_hdf(self.data_file[key], 'table')
+
+
+    def filter_data(self):
+        self.save_data(os.path.join(self.hdf_dir, "selection_prefilter"), 
+                       clear=False)
+        # for each filter that's specified
+        # apply the filter
+        if self.barcode_filter is not None: # or whatever
+            self.data['variants'] = \
+                    self.data['variants'][self.data['variants'].apply(\
+                        barcode_varation_filter, axis=1, 
+                        args=[self.barcode_filter, self.data['barcodes'], 
+                              self.barcode_map])]
+
+

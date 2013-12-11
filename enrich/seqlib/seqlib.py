@@ -113,30 +113,32 @@ class SeqLib(object):
         print("", 'total', self.filter_stats['total'], sep="\t", file=handle)
 
 
-    def save_counts(self, directory, keys=None):
+    def save_counts(self, directory, keys=None, clear=False):
         """
-        Save the counts DataFrame as a pickled object and remove the counts.
+        Save the counts DataFrame as an HDF5 file.
 
-        The counts filename is generated procedurally using base64 encoding.
+        The counts filename .
         This sacrifices human readability in favor of ensuring a valid
         filename is generated regardless of the SeqLib name.
         """
         if keys is None:
             keys = self.counts.keys()
         for key in keys:
-            counts_dir = os.path.join(directory, "pickled_counts", key)
-            if not os.path.exists(counts_dir):
-                os.makedirs(counts_dir)
+            output_dir = os.path.join(directory, key)
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
             fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
-            self.counts_file[key] = os.path.join(counts_dir, fname + ".pickle")
-            self.counts[key].to_pickle(self.counts_file[key])
-            self.counts[key] = None
+            fname = fname.replace(' ', '_')
+            self.counts_file[key] = os.path.join(output_dir, fname + ".h5")
+            self.counts[key].to_hdf(self.counts_file[key], 'table', append=False)
+            if clear:
+                self.counts[key] = None
 
 
     def load_counts(self):
         """
-        Load the pickled counts.
+        Load the HDF5 counts.
         """
         for key in self.counts_file:
-            self.counts[key] = pd.read_pickle(self.counts_file[key], table)
+            self.counts[key] = pd.read_hdf(self.counts_file[key], 'table')
 
