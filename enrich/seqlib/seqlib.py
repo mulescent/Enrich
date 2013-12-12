@@ -73,11 +73,7 @@ class SeqLib(object):
 
         for key in self.filters:
             if key in config['filters']:
-                try:
-                    self.filters[key] = int(config['filters'][key])
-                except ValueError:
-                    raise EnrichError("Invalid filter value for '%s'" % key, 
-                                      self.name)
+                self.filters[key] = int(config['filters'][key])
 
         unused = list()
         for key in config['filters']:

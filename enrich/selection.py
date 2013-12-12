@@ -16,31 +16,65 @@ from collections import Counter
 from sys import stdout, stderr
 
 
-def barcode_variation(variant, barcode_data, mapping):
+def barcode_variation_apply_fn(row, barcode_data, mapping):
     """
     Calculate the coefficient of variation for a variant's barcodes.
     """
+    variant = row.name
     try:
         barcodes = mapping.variants[variant]
     except KeyError: # variant not in mapping
-        return None
+        return float("NaN")
     barcodes = [x for x in barcodes if x in barcode_data.index]
     if len(barcodes) > 0:
         cv = stats.variation(barcode_data.ix[barcodes]['score'])
         return cv
     else:
-        return None
+        return float("NaN")
 
 
-def barcode_varation_filter(row, cutoff, barcode_data, mapping):
-    cv = barcode_variation(row.name, barcode_data, mapping)
-    if cv > cutoff:
+def barcode_varation_filter(row, cutoff):
+    if row['bc.cv'] > cutoff:
         return False
     else:
         return True
 
 
-def enrichment_apply_func(row, timepoints):
+def min_count_filter(row, cutoff):
+    counts = row[[x for x in row.index if x.startswith("count")]].values
+    if counts.min() < cutoff:
+        return False
+    else:
+        return True
+
+
+def min_input_count_filter(row, cutoff):
+    if row['count.0'] < cutoff:
+        return False
+    else:
+        return True
+
+
+def input_only_filter(row):
+    counts = row[[x for x in row.index if x.startswith("count")]].values
+    if counts.sum() == row['counts.0']:
+        return False
+    else:
+        return True
+
+
+def min_rsq_filter(row, cutoff):
+    # keep anything without an r-squared value
+    # those can be filtered out separately
+    if np.isnan(row['r_sq']):
+        return True
+    elif row['r_sq'] < cutoff:
+        return False
+    else:
+        return True
+
+
+def enrichment_apply_fn(row, timepoints):
     if math.isnan(row[0]):
         # not present in input library
         score = float("NaN")
@@ -73,6 +107,8 @@ class Selection(object):
         self.timepoints = list()
         self.verbose = False
         self.log = None
+        self.filters = None
+        self.filter_stats = None
 
         # PARAMETERIZE
         self.hdf_dir = "."
@@ -107,6 +143,12 @@ class Selection(object):
 
             if len(set(libnames)) != len(libnames):
                 raise EnrichError("Non-unique library names", self.name)
+
+            self.set_filters(config, {'min count' : 0,
+                                      'input only' : False,
+                                      'min input count' : 0,
+                                      'min rsquared' : 0.0,
+                                      'max barcode variation' : None})
 
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, 
@@ -166,6 +208,27 @@ class Selection(object):
                 lib.enable_logging(log)
 
 
+    def set_filters(self, config, default_filters):
+        self.filters = default_filters
+
+        for key in self.filters:
+            if key in config['filters']:
+                self.filters[key] = config['filters'][key]
+
+        unused = list()
+        for key in config['filters']:
+            if key not in self.filters:
+                unused.append(key)
+        if len(unused) > 0:
+            raise EnrichError("Unused filter parameters (%s)" % 
+                              ', '.join(unused), self.name)
+
+        self.filter_stats = dict()
+        for key in self.filters:
+            self.filter_stats[key] = 0
+        self.filter_stats['total'] = 0
+
+
     def get_counts(self):
         # calculate counts for each timepoint
         for tp in self.timepoints:
@@ -196,32 +259,38 @@ class Selection(object):
 
 
 
-    def calc_frequencies(self):
-        for dtype in self.data:
-            for tp in self.timepoints:
-                self.data[dtype]['frequency.%d' % tp] =  \
-                    self.data[dtype]['count.%d' % tp] / \
-                    float(self.data[dtype]['count.%d' % tp].sum())
+    def calc_frequencies(self, dtype):
+        for tp in self.timepoints:
+            self.data[dtype]['frequency.%d' % tp] =  \
+                self.data[dtype]['count.%d' % tp] / \
+                float(self.data[dtype]['count.%d' % tp].sum())
 
 
-    def calc_ratios(self):
-        for dtype in self.data:
-            for tp in self.timepoints:
-                if tp == 0: # input library
-                    self.data[dtype]['ratio.%d' % tp] = 1.0
-                else:
-                    self.data[dtype]['ratio.%d' % tp] =  \
-                            self.data[dtype]['frequency.%d' % tp] / \
-                            self.data[dtype]['frequency.0']
+    def calc_ratios(self, dtype):
+        for tp in self.timepoints:
+            if tp == 0: # input library
+                self.data[dtype]['ratio.%d' % tp] = 1.0
+            else:
+                self.data[dtype]['ratio.%d' % tp] =  \
+                        self.data[dtype]['frequency.%d' % tp] / \
+                        self.data[dtype]['frequency.0']
 
 
-    def calc_enrichments(self):
-        for dtype in self.data:
-            # apply the enrichment-calculating function to a DataFrame
-            # containing only ratio data
-            ratio_df = self.data[dtype][['ratio.%d' % x for x in self.timepoints]]
-            enrichments = ratio_df.apply(enrichment_apply_func, axis=1, args=[np.asarray(self.timepoints)])
-            self.data[dtype] = self.data[dtype].join(enrichments)
+    def calc_enrichments(self, dtype):
+        # apply the enrichment-calculating function to a DataFrame
+        # containing only ratio data
+        ratio_df = self.data[dtype][['ratio.%d' % x for x in self.timepoints]]
+        enrichments = ratio_df.apply(enrichment_apply_fn, axis=1, args=[np.asarray(self.timepoints)])
+        self.data[dtype]['score'] = enrichments['score']
+        self.data[dtype]['r_sq'] = enrichments['r_sq']
+
+
+    def calc_barcode_variation(self):
+        if 'variants' in self.data and 'barcodes' in self.data:
+            self.data['variants']['bc.cv'] = \
+                    self.data['variants'].apply(barcode_variation_apply_fn, 
+                        axis=1,
+                        args=[self.data['barcodes'], self.barcode_map])
 
 
     def count_mutations(self):
@@ -287,11 +356,49 @@ class Selection(object):
                        clear=False)
         # for each filter that's specified
         # apply the filter
-        if self.barcode_filter is not None: # or whatever
+        if self.filters['max barcode variation']:
+            nrows = len(self.data['variants'])
             self.data['variants'] = \
                     self.data['variants'][self.data['variants'].apply(\
                         barcode_varation_filter, axis=1, 
-                        args=[self.barcode_filter, self.data['barcodes'], 
-                              self.barcode_map])]
+                        args=[self.filters['max barcode variation']])]
+            self.filter_stats['max barcode variation'] = \
+                    nrows - len(self.data['variants'])
+        if self.filters['input only']:
+            nrows = len(self.data['variants'])
+            self.data['variants'] = \
+                    self.data['variants'][self.data['variants'].apply(\
+                        input_only_filter, axis=1)]
+            self.filter_stats['input only'] = \
+                    nrows - len(self.data['variants'])
+        if self.filters['min count'] > 0:
+            nrows = len(self.data['variants'])
+            self.data['variants'] = \
+                    self.data['variants'][self.data['variants'].apply(\
+                        min_count_filter, axis=1, 
+                        args=[self.filters['min count']])]
+            self.filter_stats['min count'] = \
+                    nrows - len(self.data['variants'])
+        if self.filters['min input count'] > 0:
+            nrows = len(self.data['variants'])
+            self.data['variants'] = \
+                    self.data['variants'][self.data['variants'].apply(\
+                        min_input_count_filter, axis=1, 
+                        args=[self.filters['min count']])]
+            self.filter_stats['min input count'] = \
+                    nrows - len(self.data['variants'])
+        if self.filters['min rsquared'] > 0.0:
+            nrows = len(self.data['variants'])
+            self.data['variants'] = \
+                    self.data['variants'][self.data['variants'].apply(\
+                        min_rsq_filter, axis=1, 
+                        args=[self.filters['min rsquared']])]
+            self.filter_stats['min rsquared'] = \
+                    nrows - len(self.data['variants'])
 
+        self.filter_stats['total'] = sum(self.filter_stats.values())
 
+        # recalculate with the updated (post-filter) frequencies
+        self.calc_frequencies()
+        self.calc_ratios()
+        self.calc_enrichments()
