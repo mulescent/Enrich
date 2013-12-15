@@ -34,11 +34,17 @@ class FQRead(object):
 
 
     def __init__(self, header, sequence, header2, quality, qbase=33):
-        if len(sequence) != len(quality):
-            raise ValueError('different lengths for sequence and quality')
-        elif header[0] != '@' or header2[0] != '+':
+#        if len(sequence) != len(quality):
+#            if len(sequence) < len(quality):
+#                quality = quality[:len(sequence)]
+#            else:
+#                raise ValueError('different lengths for sequence and quality')
+#        elif header[0] != '@' or header2[0] != '+':
+        if header[0] != '@' or header2[0] != '+':
             raise ValueError('improperly formatted FASTQ record')
         else:
+            if len(sequence) < len(quality):
+                quality = quality[:len(sequence)]
             self.header = header
             self.sequence = sequence
             self.header2 = header2

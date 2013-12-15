@@ -195,8 +195,7 @@ class VariantSeqLib(SeqLib):
         else:
             mutations = list()
             for i in xrange(len(variant_dna)):
-                if variant_dna[i] != self.wt_dna[i] and \
-                        variant_dna[i] != 'N':  # ignore N's
+                if variant_dna[i] != self.wt_dna[i]:
                     mutations.append((i, "%s>%s" % \
                                        (self.wt_dna[i], variant_dna[i])))
                     if len(mutations) > self.filters['max mutations']:
@@ -249,6 +248,7 @@ class VariantSeqLib(SeqLib):
             self.counts['variants'][variant_string] += copies
         except KeyError:
             self.counts['variants'][variant_string] = copies
+        return variant_string
 
 
     def count_mutations(self, include_indels=False):

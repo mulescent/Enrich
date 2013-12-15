@@ -1,0 +1,49 @@
+{
+"name" : "ww example",
+  "libraries" : [
+    {
+      "name" : "example input",
+      "timepoint" : 0,
+      "wild type" : {
+        "sequence" : "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+        "coding" : true
+      },
+      "fastq" : {
+        "forward" : "/Users/afrubin/Code/Enrich/enrich/example/unsel_example_F_index_filtered.fq",
+        "reverse" : "/Users/afrubin/Code/Enrich/enrich/example/unsel_example_R_index_filtered.fq"
+      },
+      "filters" : {
+        "chastity" : true,
+        "mean quality" : 20
+      },
+      "overlap" : {
+        "forward start" : 15,
+        "reverse start" : 75,
+        "length" : 74,
+        "overlap only" : false
+      },
+    },
+    {
+      "name" : "example selected",
+      "timepoint" : 0,
+      "wild type" : {
+        "sequence" : "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+        "coding" : true
+      },
+      "fastq" : {
+        "forward" : "/Users/afrubin/Code/Enrich/enrich/example/sel_example_F_index_filtered.fq",
+        "reverse" : "/Users/afrubin/Code/Enrich/enrich/example/sel_example_R_index_filtered.fq"
+      },
+      "filters" : {
+        "chastity" : true,
+        "mean quality" : 20
+      },
+      "overlap" : {
+        "forward start" : 15,
+        "reverse start" : 75,
+        "length" : 74,
+        "overlap only" : false
+      },
+    }
+  ]
+}

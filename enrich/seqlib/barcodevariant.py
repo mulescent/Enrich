@@ -14,6 +14,7 @@ from sys import stdout, stderr
 
 class BarcodeMap(dict):
     def __init__(self, mapfile):
+        self.name = "mapfile_%s" % mapfile
         try:
             handle = open(mapfile, "U")
         except IOError:
@@ -46,31 +47,19 @@ class BarcodeMap(dict):
             else:
                 self[barcode] = variant
         handle.close()
-
-        self.set_variants()
-
-
-    def set_variants(self):
-        """
-        Create a reverse-dictionary with variants as keys.
-
-        Variants are keys and values are a list of barcodes associated with 
-        that variant. Creation of this dictionary is optional for memory 
-        reasons.
-        """
         self.variants = dict()
-        for bc, v in self.iteritems():
-            if v not in self.variants:
-                self.variants[v] = list()
-            self.variants[v].append(bc)
 
 
-    def del_variants(self):
-        """
-        Remove reference to the variants dictionary to save memory.
-        """
-        self.variants = None
-
+    def write_variants(self, fname):
+        try:
+            handle = open(fname, "w")
+        except IOError:
+            raise EnrichError("Could not open variant barcode map file '%s' "
+                              "for writing" % fname, self.name)
+        for variant, barcodes in \
+                sorted(self.variants.items(), key=lambda x:x[1]):
+            print(variant, ", ".join(barcodes), sep="\t", file=handle)
+        handle.close()
 
 
 class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
@@ -120,6 +109,11 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
                 self.filter_stats['total'] += count
                 if self.verbose:
                     self.report_filtered_variant(variant, count)
+            else:
+                if mutations not in self.barcode_map.variants:
+                    self.barcode_map.variants[mutations] = list()
+                if bc not in self.barcode_map.variants[mutations]:
+                    self.barcode_map.variants[mutations].append(bc)
 
         print("counted %d unique variants from %d unique barcodes (%s)" % (len(self.counts['variants'].keys()), len(self.counts['barcodes'].index), self.name), file=stderr)
 

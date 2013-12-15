@@ -13,7 +13,7 @@ class OverlapSeqLib(VariantSeqLib):
             self.fwd_start = int(config['overlap']['forward start'])
             self.rev_start = int(config['overlap']['reverse start'])
             self.overlap_length = int(config['overlap']['length'])
-            self.trim = int(config['overlap']['overlap only'])
+            self.trim = config['overlap']['overlap only']
             self.max_overlap_mismatches = int(config['overlap']
                                                     ['max mismatches'])
 
