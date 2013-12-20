@@ -344,14 +344,16 @@ class Selection(object):
             fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
             fname = fname.replace(' ', '_')
             self.data_file[key] = os.path.join(output_dir, fname + ".h5")
-            self.data[key].to_hdf(self.data_file[key], 'table', append=False)
+            self.data[key].to_csv(self.data_file[key], 
+                    sep="\t", na_rep="NaN", float_format="%.4g", 
+                    index_label="sequence")
             if clear:
                 self.data[key] = None
 
 
     def load_data(self):
         for key in self.data_file:
-            self.data[key] = pd.read_hdf(self.data_file[key], 'table')
+            self.data[key] = pd.from_csv(self.data_file[key], sep="\t")
 
 
     def filter_data(self):

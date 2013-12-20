@@ -1,5 +1,6 @@
 {
 "name" : "ww example",
+"filters" : {},
   "libraries" : [
     {
       "name" : "example input",
@@ -9,41 +10,41 @@
         "coding" : true
       },
       "fastq" : {
-        "forward" : "/Users/afrubin/Code/Enrich/enrich/example/unsel_example_F_index_filtered.fq",
-        "reverse" : "/Users/afrubin/Code/Enrich/enrich/example/unsel_example_R_index_filtered.fq"
+        "forward" : "/Users/afrubin/Documents/Enrich2_example/unsel_example_F_index_filtered.fq",
+        "reverse" : "/Users/afrubin/Documents/Enrich2_example/unsel_example_R_index_filtered.fq"
       },
       "filters" : {
-        "chastity" : true,
-        "mean quality" : 20
+        "avg quality" : 20
       },
       "overlap" : {
         "forward start" : 15,
-        "reverse start" : 75,
+        "reverse start" : 15,
         "length" : 74,
-        "overlap only" : false
-      },
+        "overlap only" : false,
+        "max mismatches" : 5
+      }
     },
     {
       "name" : "example selected",
-      "timepoint" : 0,
+      "timepoint" : 1,
       "wild type" : {
         "sequence" : "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
         "coding" : true
       },
       "fastq" : {
-        "forward" : "/Users/afrubin/Code/Enrich/enrich/example/sel_example_F_index_filtered.fq",
-        "reverse" : "/Users/afrubin/Code/Enrich/enrich/example/sel_example_R_index_filtered.fq"
+        "forward" : "/Users/afrubin/Documents/Enrich2_example/sel_example_F_index_filtered.fq",
+        "reverse" : "/Users/afrubin/Documents/Enrich2_example/sel_example_R_index_filtered.fq"
       },
       "filters" : {
-        "chastity" : true,
-        "mean quality" : 20
+        "avg quality" : 20
       },
       "overlap" : {
         "forward start" : 15,
-        "reverse start" : 75,
+        "reverse start" : 15,
         "length" : 74,
-        "overlap only" : false
-      },
+        "overlap only" : false,
+        "max mismatches" : 5
+      }
     }
   ]
 }

@@ -21,7 +21,8 @@ class SeqLib(object):
             'avg quality' : "average quality",
             'max mutations' : "excess mutations",
 			'chastity' : "not chaste",
-            'remove overlap indels' : "indel in read overlap"
+            'remove overlap indels' : "indel in read overlap",
+            'fuser failure' : "unable to fuse reads"
     }
 
 
@@ -111,7 +112,7 @@ class SeqLib(object):
 
     def save_counts(self, directory, keys=None, clear=False):
         """
-        Save the counts DataFrame as an HDF5 file.
+        Save the counts DataFrame as a tab-separated file.
 
         The counts filename .
         This sacrifices human readability in favor of ensuring a valid
@@ -125,16 +126,18 @@ class SeqLib(object):
                 os.makedirs(output_dir)
             fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
             fname = fname.replace(' ', '_')
-            self.counts_file[key] = os.path.join(output_dir, fname + ".h5")
-            self.counts[key].to_hdf(self.counts_file[key], 'table', append=False)
+            self.counts_file[key] = os.path.join(output_dir, fname + ".txt")
+            self.counts[key].to_csv(self.counts_file[key], 
+                    sep="\t", na_rep="NaN", float_format="%.4g", 
+                    index_label="sequence")
             if clear:
                 self.counts[key] = None
 
 
     def load_counts(self):
         """
-        Load the HDF5 counts.
+        Load the tab-separated file counts.
         """
         for key in self.counts_file:
-            self.counts[key] = pd.read_hdf(self.counts_file[key], 'table')
+            self.counts[key] = pd.from_csv(self.counts_file[key], sep="\t")
 

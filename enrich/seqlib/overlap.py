@@ -1,6 +1,12 @@
+from __future__ import print_function
+from sys import stderr
+
+
+
 from variant import VariantSeqLib
 from enrich_error import EnrichError
 from fastq_util import read_fastq_multi, check_fastq, FQRead
+import pandas as pd
 
 
 class OverlapSeqLib(VariantSeqLib):
@@ -67,7 +73,7 @@ class OverlapSeqLib(VariantSeqLib):
                     fused.sequence[a] = 'X' # unresolvable
                 elif rev.quality[b] > fwd.quality[a]:
                     fused.sequence[a] = rev.sequence[b]
-                    fused.quality[a] = rev.sequence[b]
+                    fused.quality[a] = rev.quality[b]
                 else:
                     pass # overlap region already same as fwd
         if mismatches > self.max_overlap_mismatches:
