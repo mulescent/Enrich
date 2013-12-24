@@ -18,7 +18,7 @@ class BasicSeqLib(VariantSeqLib):
             else:
                 raise KeyError("'forward' or 'reverse'")
 
-            self.set_filters(config, {'min quality' : 0,
+            self.set_filters(config['filters'], {'min quality' : 0,
                                       'avg quality' : 0,
                                       'chastity' : False,
                                       'max mutations' : len(self.wt_dna)})

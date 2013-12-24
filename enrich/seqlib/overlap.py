@@ -25,7 +25,7 @@ class OverlapSeqLib(VariantSeqLib):
 
             if 'fuser failure' in config['filters']:
                 raise EnrichError("'fuser failure' is not user-configurable", self.name)
-            self.set_filters(config, {'remove unresolvable' : False, 
+            self.set_filters(config['filters'], {'remove unresolvable' : False, 
                                       'min quality' : 0,
                                       'avg quality' : 0,
                                       'max mutations' : len(self.wt_dna),

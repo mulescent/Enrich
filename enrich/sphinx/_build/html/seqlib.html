@@ -1,0 +1,165 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Documentation for the Code &mdash; Enrich2 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Enrich2 2.0 documentation" href="index.html" />
+    <link rel="prev" title="Welcome to Enrich2’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Enrich2’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-seqlib">
+<span id="documentation-for-the-code"></span><h1>Documentation for the Code<a class="headerlink" href="#module-seqlib" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="seqlib.SeqLib">
+<em class="property">class </em><tt class="descclassname">seqlib.</tt><tt class="descname">SeqLib</tt><big>(</big><em>config</em><big>)</big><a class="headerlink" href="#seqlib.SeqLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract class for handling count data from a single sequencing library.
+Creating a <em>SeqLib</em> requires a valid <em>config</em> object, usually from a  
+<tt class="docutils literal"><span class="pre">.json</span></tt> configuration file.</p>
+<dl class="method">
+<dt id="seqlib.SeqLib.count">
+<tt class="descname">count</tt><big>(</big><big>)</big><a class="headerlink" href="#seqlib.SeqLib.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method defines how the data is counted. It must be implemented 
+by each subclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.SeqLib.enable_logging">
+<tt class="descname">enable_logging</tt><big>(</big><em>log</em><big>)</big><a class="headerlink" href="#seqlib.SeqLib.enable_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Messages will be sent to the open file handle <em>log</em>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.SeqLib.load_counts">
+<tt class="descname">load_counts</tt><big>(</big><em>keys=None</em><big>)</big><a class="headerlink" href="#seqlib.SeqLib.load_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the counts from the <tt class="docutils literal"><span class="pre">.tsv</span></tt> files in the <tt class="docutils literal"><span class="pre">self.counts_file</span></tt> 
+dictionary.</p>
+<p>The optional <em>keys</em> parameter is a list of types of counts to be 
+loaded. By default, all counts are loaded.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.SeqLib.save_counts">
+<tt class="descname">save_counts</tt><big>(</big><em>directory</em>, <em>keys=None</em>, <em>clear=False</em><big>)</big><a class="headerlink" href="#seqlib.SeqLib.save_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the counts DataFrame as a tab-separated file in <em>directory</em>. The 
+counts are saved as <tt class="docutils literal"><span class="pre">type.tsv</span></tt> for each type of counts 
+(<tt class="docutils literal"><span class="pre">'barcode'</span></tt>, <tt class="docutils literal"><span class="pre">'variant'</span></tt>, etc.). The file name for each <tt class="docutils literal"><span class="pre">.tsv</span></tt> 
+file is stored in the <tt class="docutils literal"><span class="pre">self.counts_file</span></tt> dictionary, for use by 
+<tt class="docutils literal"><span class="pre">load_counts</span></tt>.</p>
+<p>The optional <em>keys</em> parameter is a list of types of counts to be 
+saved. By default, all counts are saved.</p>
+<p>If <em>clear</em> is <tt class="docutils literal"><span class="pre">True</span></tt>, saved counts will be set to <tt class="docutils literal"><span class="pre">None</span></tt> after 
+writing. This is used to save memory. If needed later, the counts 
+can be read from the file using <tt class="docutils literal"><span class="pre">load_counts</span></tt>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.SeqLib.set_filters">
+<tt class="descname">set_filters</tt><big>(</big><em>config_filters</em>, <em>class_default_filters</em><big>)</big><a class="headerlink" href="#seqlib.SeqLib.set_filters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the filtering options using the values from the 
+<em>config_filters</em> dictionary and <em>class_default_filters</em> dictionary. 
+This method is used by the <tt class="docutils literal"><span class="pre">__init__</span></tt> method of <em>SeqLib</em> subclasses.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To help prevent user error, <em>config_filters</em> must be a         subset of <em>class_default_filters</em>.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Enrich2&#8217;s documentation!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/seqlib.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Enrich2’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Alan F Rubin and Douglas M Fowler.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

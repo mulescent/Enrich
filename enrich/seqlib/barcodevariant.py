@@ -72,7 +72,7 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
             else:
                 self.barcode_map = None
 
-            self.set_filters(config, {'min quality' : 0,
+            self.set_filters(config['filters'], {'min quality' : 0,
                                       'avg quality' : 0,
                                       'chastity' : False,
                                       'max mutations' : len(self.wt_dna)})

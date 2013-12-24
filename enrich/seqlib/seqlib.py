@@ -9,10 +9,9 @@ import os.path
 
 class SeqLib(object):
     """
-    Abstract class for data from a single Enrich sequencing library.
-
-    Implements core functionality for handling count data, parsing 
-    configuration objects, and other shared processes.
+    Abstract class for handling count data from a single sequencing library.
+    Creating a *SeqLib* requires a valid *config* object, usually from a  
+    ``.json`` configuration file.
     """
 
     _filter_messages = {
@@ -27,6 +26,10 @@ class SeqLib(object):
 
 
     def __init__(self, config):
+        """
+        Initialize the *SeqLib* using the information in the *config* object.
+        Most error-checking is performed in this method.
+        """
         self.name = "Unnamed" + self.__class__.__name__
         self.verbose = False
         self.log = None
@@ -56,28 +59,43 @@ class SeqLib(object):
 
 
     def enable_logging(self, log):
+        """
+        Messages will be sent to the open file handle *log*.
+        """
         self.verbose = True
         self.log = log
         try:
             print("# Logging started for '%s': %s" % 
                         (self.name, time.asctime()), file=self.log)
         except (IOError, AttributeError):
-            raise EnrichException("Could not write to log file", self.name)
+            raise EnrichError("Could not write to log file", self.name)
 
 
     def count(self):
+        """
+        This method defines how the data is counted. It must be implemented 
+        by each subclass.
+        """
         raise NotImplementedError("must be implemented by subclass")
 
 
-    def set_filters(self, config, class_default_filters):
+    def set_filters(self, config_filters, class_default_filters):
+        """
+        Sets the filtering options using the values from the 
+        *config_filters* dictionary and *class_default_filters* dictionary. 
+        This method is used by the ``__init__`` method of *SeqLib* subclasses.
+
+        .. note:: To help prevent user error, *config_filters* must be a \
+        subset of *class_default_filters*.
+        """
         self.filters = class_default_filters
 
         for key in self.filters:
-            if key in config['filters']:
+            if key in config_filters:
                 self.filters[key] = int(config['filters'][key])
 
         unused = list()
-        for key in config['filters']:
+        for key in config_filters:
             if key not in self.filters:
                 unused.append(key)
         if len(unused) > 0:
@@ -112,11 +130,18 @@ class SeqLib(object):
 
     def save_counts(self, directory, keys=None, clear=False):
         """
-        Save the counts DataFrame as a tab-separated file.
+        Save the counts DataFrame as a tab-separated file in *directory*. The 
+        counts are saved as ``type.tsv`` for each type of counts 
+        (``'barcode'``, ``'variant'``, etc.). The file name for each ``.tsv`` 
+        file is stored in the ``self.counts_file`` dictionary, for use by 
+        ``load_counts``.
 
-        The counts filename .
-        This sacrifices human readability in favor of ensuring a valid
-        filename is generated regardless of the SeqLib name.
+        The optional *keys* parameter is a list of types of counts to be 
+        saved. By default, all counts are saved.
+
+        If *clear* is ``True``, saved counts will be set to ``None`` after 
+        writing. This is used to save memory. If needed later, the counts 
+        can be restored using ``load_counts``.
         """
         if keys is None:
             keys = self.counts.keys()
@@ -134,10 +159,19 @@ class SeqLib(object):
                 self.counts[key] = None
 
 
-    def load_counts(self):
+    def load_counts(self, keys=None):
         """
-        Load the tab-separated file counts.
+        Load the counts from the ``.tsv`` files in the ``self.counts_file`` 
+        dictionary.
+
+        The optional *keys* parameter is a list of types of counts to be 
+        loaded. By default, all counts are loaded.
         """
-        for key in self.counts_file:
+        if keys is None:
+            keys = self.counts_file.keys()
+        else:
+            if not all(key in self.counts_file.keys() for key in keys):
+                raise EnrichError("Cannot load unsaved counts", self.name)
+        for key in keys:
             self.counts[key] = pd.from_csv(self.counts_file[key], sep="\t")
 
