@@ -6,6 +6,13 @@
 Welcome to Enrich2's documentation!
 ===================================
 
+* *such document*
+* *so read*
+* *very inform*
+
+.. image:: c09.jpg
+	:width: 600
+
 Contents:
 
 .. toctree::

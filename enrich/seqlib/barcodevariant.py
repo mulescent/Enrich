@@ -108,7 +108,7 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
                 self.filter_stats['max mutations'] += count
                 self.filter_stats['total'] += count
                 if self.verbose:
-                    self.report_filtered_variant(variant, count)
+                    self.report_filtered_variant(self.log, variant, count)
             else:
                 if mutations not in self.barcode_map.variants:
                     self.barcode_map.variants[mutations] = list()
@@ -132,9 +132,9 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
                 [self.counts['barcodes']['count'] >= mincount]
 
 
-    def report_filtered_variant(self, variant, count):
+    def report_filtered_variant(self, handle, variant, count):
         print("Filtered variant (%s)" % \
-                    (SeqLib._filter_messages['max mutations']), file=self.log)
-        print(variant, file=self.log)
-        print("quantity=", count, sep="", file=self.log)
+                    (SeqLib._filter_messages['max mutations']), file=handle)
+        print(variant, file=handle)
+        print("quantity=", count, sep="", file=handle)
 

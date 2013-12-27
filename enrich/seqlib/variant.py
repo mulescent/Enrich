@@ -5,6 +5,7 @@ from enrich_error import EnrichError
 from aligner import Aligner
 from seqlib import SeqLib
 
+# Variant string for counting wild type sequences
 WILD_TYPE_VARIANT = "_wt"
 
 # Standard codon table for translating wild type and variant DNA sequences
@@ -54,15 +55,10 @@ aa_codes = {
         '?' : '???'
 }
 
-
-# Information strings for the different kinds of read filtering
-# Used for properly formatting error messages
-
 def has_indel(variant):
     """
-    Returns True if the variant contains an indel mutation.
-
-    variant is a string containing mutations in HGVS format.
+    Helper function that returns ``True`` if the HGVS string *variant* 
+    contains an indel mutation.
     """
     return any(x in variant for x in ("ins", "del", "dup"))
 
@@ -115,7 +111,7 @@ class VariantSeqLib(SeqLib):
         return self.wt_protein is not None
 
 
-    def set_wt(self, sequence, coding=True, codon_table=codon_table):
+    def set_wt(self, sequence, coding=True):
         """
         Set the wild type DNA sequence (and protein sequence if applicable).
 
@@ -166,8 +162,7 @@ class VariantSeqLib(SeqLib):
         return mutations
 
 
-    def count_variant(self, variant_dna, copies=1, include_indels=True, 
-                      codon_table=codon_table):
+    def count_variant(self, variant_dna, copies=1, include_indels=True):
         """
         Identify and count the variant.
 

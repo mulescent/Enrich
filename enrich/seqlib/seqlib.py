@@ -26,10 +26,6 @@ class SeqLib(object):
 
 
     def __init__(self, config):
-        """
-        Initialize the *SeqLib* using the information in the *config* object.
-        Most error-checking is performed in this method.
-        """
         self.name = "Unnamed" + self.__class__.__name__
         self.verbose = False
         self.log = None
@@ -60,7 +56,11 @@ class SeqLib(object):
 
     def enable_logging(self, log):
         """
-        Messages will be sent to the open file handle *log*.
+        Turns on log output for this object. Messages will be sent to the 
+        open file handle *log*. 
+
+        .. note:: One log file is usually shared by all objects in the \
+        analysis. This method is invoked by **Selection** logging functions.
         """
         self.verbose = True
         self.log = log
@@ -108,7 +108,14 @@ class SeqLib(object):
         self.filter_stats['total'] = 0
 
 
-    def report_filtered_read(self, fq, filter_flags):
+    def report_filtered_read(self, handle, fq, filter_flags):
+        """
+        Outputs the **FQRead** object *fq* to *handle* (usually the object's
+        log file). The dictionary *filter_flags* contains ``True`` values for 
+        each filtering option that applies to *fq*. Keys in *filter_flags* 
+        are converted to messages using the ``SeqLib._filter_messages`` 
+        dictionary.
+        """
         print("Filtered read (%s) [%s]" % \
                 (', '.join(SeqLib._filter_messages[x] 
                  for x in filter_flags if filter_flags[x]), self.name), 
@@ -117,6 +124,11 @@ class SeqLib(object):
 
 
     def report_filtered(self, handle):
+        """
+        Outputs a summary of filtered reads to *handle*. Internal filter 
+        names are converted to messages using the ``SeqLib._filter_messages`` 
+        dictionary.
+        """
         print('Number of filtered reads for "%s"' % self.name, file=handle)
         for key in sorted(self.filter_stats):
             if key == 'total':
@@ -131,10 +143,9 @@ class SeqLib(object):
     def save_counts(self, directory, keys=None, clear=False):
         """
         Save the counts DataFrame as a tab-separated file in *directory*. The 
-        counts are saved as ``type.tsv`` for each type of counts 
-        (``'barcode'``, ``'variant'``, etc.). The file name for each ``.tsv`` 
-        file is stored in the ``self.counts_file`` dictionary, for use by 
-        ``load_counts``.
+        counts are saved as ``barcode.tsv`` and/or ``variant.tsv`` as 
+        appropriate for the analysis. The file names are stored in the 
+        ``self.counts_file`` dictionary.
 
         The optional *keys* parameter is a list of types of counts to be 
         saved. By default, all counts are saved.

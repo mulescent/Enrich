@@ -87,7 +87,7 @@ class BarcodeSeqLib(SeqLib):
             if any(filter_flags.values()): # failed quality filtering
                 self.filter_stats['total'] += 1
                 if self.verbose:
-                    self.report_filtered_read(fq, filter_flags)
+                    self.report_filtered_read(self.log, fq, filter_flags)
             else: # passed quality filtering
                 try:
                     self.counts['barcodes'][fq.sequence.upper()] += 1

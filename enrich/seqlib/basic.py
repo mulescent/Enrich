@@ -67,7 +67,7 @@ class BasicSeqLib(VariantSeqLib):
             if any(filter_flags.values()):
                 self.filter_stats['total'] += 1
                 if self.verbose:
-                    self.report_filtered_read(fq, filter_flags)
+                    self.report_filtered_read(self.log, fq, filter_flags)
 
         self.counts['variants'] = \
                 pd.DataFrame.from_dict(self.counts['variants'], 
