@@ -29,7 +29,14 @@ dna_trans = string.maketrans("actgACTG", "tgacTGAC")
 
 
 class FQRead(object):
-    # no instance dictionary, more memory efficient
+    """
+    Stores a single record from a 
+    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file. Quality values 
+    are stored internally as a list of integer Phred scores. The *qbase* 
+    parameter is the ASCII value that correponds to Phred score of 0.
+    The *sequence* and *quality* strings must be the same length. 
+    """
+    # use slots for memory efficiency
     __slots__ = ('header', 'sequence', 'header2', 'quality', 'qbase')
 
 
@@ -51,7 +58,8 @@ class FQRead(object):
 
     def __str__(self):
         """
-        Reformat as a FASTQ read.
+        Reformat as a four-line FASTQ record. This method converts the integer
+        quality values back into a string.
         """
         return '\n'.join([self.header, self.sequence, self.header2, 
                 array('b', [x + self.qbase for x in self.quality]).tostring()])
@@ -59,17 +67,15 @@ class FQRead(object):
 
     def __len__(self):
         """
-        Length of the sequence.
+        Object length is the length of the sequence.
         """
         return len(self.sequence)
 
 
     def trim(self, start=1, end=-1):
         """
-        Trim this read to contain bases between start and end.
-
-        Bases are numbered starting at 1. Start and end are inclusive. Header 
-        information is unchanged.
+        Trims this FQRead to contain bases between *start* and *end* 
+        (inclusive). Bases are numbered starting at 1.
         """
         self.sequence = self.sequence[start - 1:end]
         self.quality = self.quality[start - 1:end]
@@ -77,19 +83,16 @@ class FQRead(object):
 
     def trim_length(self, length, start=1):
         """
-        Trim this read to contain length bases including start.
-
-        Bases are numbered starting at 1. Header information is unchanged.
+        Trims this FQRead to contain *length* bases, beginning with *start*. 
+        Bases are numbered starting at 1.
         """
         self.trim(start=start, end=start + length - 1)
 
 
     def reverse(self):
         """
-        Reverse-complement the sequence in place.
-
-        The sequence is reverse-complemented and the quality values are reversed.
-        Header information is unchanged.
+        Reverse-complement the sequence in place. The sequence is 
+        reverse-complemented and the quality values are reversed.
         """
         self.sequence = self.sequence.translate(dna_trans)[::-1]
         self.quality = self.quality[::-1]
@@ -97,11 +100,10 @@ class FQRead(object):
 
     def header_information(self, pattern=header_pattern):
         """
-        Parses the first FASTQ header and returns a dictionary.
-
-        Dictionary keys are based on named groups in the regular expression 
-        pattern. Unnamed matches are ignored. Integer dictionary values are 
-        converted.
+        Parses the first FASTQ header (@) and returns a dictionary. 
+        Dictionary keys are the named groups in the regular expression 
+        *pattern*. Unnamed matches are ignored. Integer values are converted 
+        from strings to integers.
         """
         match = pattern.match(self.header)
         if match is None:
@@ -116,24 +118,26 @@ class FQRead(object):
 
     def min_quality(self):
         """
-        Return the minimum base quality in the read.
+        Return the minimum Phred-like quality score.
         """
         return min(self.quality)
 
 
     def mean_quality(self):
         """
-        Return the average base quality in the read.
+        Return the average Phred-like quality score.
         """
         return float(sum(self.quality)) / len(self)
 
 
     def is_chaste(self):
         """
-        Returns True if the chastity bit is set in the FASTQ header.
+        Returns True if the chastity bit is set in the FASTQ header. The 
+        regular experession used by ``header_information`` must include  
+        a 'Chastity' match that equals 1 if the read is chaste.
         """
         try:
-            if self.header_information()['Chastity'] == "1":
+            if self.header_information()['Chastity'] == 1:
                 return True
             else:
                 return False
@@ -144,10 +148,9 @@ class FQRead(object):
 
 def check_fastq(fname):
     """
-    Check that the file exists and has a valid FASTQ file extension.
-
-    Returns if the file exists and the extension is recognized (.fastq 
-    or .fq), otherwise raise an IOError.
+    Check that *fname* exists and has a valid FASTQ file extension. Returns 
+    ``None`` if the file exists and the extension is recognized (.fastq 
+    or .fq), otherwise raise an ``IOError``.
     """
     if os.path.isfile(fname):
         ext = os.path.splitext(fname)[-1].lower()
@@ -162,14 +165,13 @@ def check_fastq(fname):
 
 def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE, qbase=33):
     """
-    Generator function for reading from a FASTQ file.
+    Generator function for reading from FASTQ file *fname*. Yields an FQRead 
+    object for each FASTQ record in the file. The *filter_function* must 
+    operate on an FQRead object and return ``True`` or ``False``. If the 
+    result is ``False``, the record will be skipped silently.
 
-    Yields the FASTQ record's name, sequence, and quality values as a tuple.
-
-    The filter_function must operate on a FASTQ tuple and return True (pass)
-    or False (fail). FASTQ records that fail filtering will be skipped, so
-    this feature should not be used when reading files in parallel. Use 
-    read_fastq_multi filtering instead.
+    .. note:: To read multiple files in parallel (such as index or \
+        forward/reverse reads), use ``read_fastq_multi`` instead.
     """
     check_fastq(fname)
     handle = open(fname, "U")
@@ -212,20 +214,15 @@ def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE, qbase=33):
 def read_fastq_multi(fnames, filter_function=None, buffer_size=BUFFER_SIZE,
                      match_lengths=True, qbase=33):
     """
-    Generator function for reading from multiple FASTQ files in parallel.
+    Generator function for reading from multiple FASTQ files in parallel. 
+    The argument *fnames* is an iterable of FASTQ file names. Yields a tuple 
+    of FQRead objects, one for each file in *fnames*. The *filter_function* 
+    must operate on an FQRead object and return ``True`` or ``False``. If the 
+    result is ``False`` for any FQRead in the tuple, the entire tuple will
+    be skipped.
 
-    Yields the a tuple of tuples containing the FASTQ record's name, 
-    sequence, and quality values.
-
-    fnames must be an iterable of FASTQ file names.
-
-    The filter_function must operate on a FASTQ tuple and return True (pass)
-    or False (fail). If any of the FASTQ records read in a given set fails
-    filtering, the set will be skipped (not returned). Note that the filtering
-    is performed on each FASTQ record independently.
-
-    If match_lengths is True, the generator will yield None if the files
-    do not contain the same number of FASTQ records. Otherwise, it will 
+    If *match_lengths* is ``True``, the generator will yield ``None`` if the 
+    files do not contain the same number of FASTQ records. Otherwise, it will 
     silently ignore partial records.
     """
     fq_generators = list()
@@ -250,9 +247,8 @@ def read_fastq_multi(fnames, filter_function=None, buffer_size=BUFFER_SIZE,
 
 def fastq_filter_chastity(fq):
     """
-    Filtering function for read_fastq and read_fastq_multi.
-
-    Returns True if the chastity bit is set in the FASTQ header.
+    Filtering function for ``read_fastq`` and ``read_fastq_multi``. Returns 
+    ``True`` if the FQRead *fq* is chaste.
     """
     return fq.is_chaste()
 
