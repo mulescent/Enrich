@@ -18,7 +18,8 @@ from sys import stdout, stderr
 
 def barcode_variation_apply_fn(row, barcode_data, mapping):
     """
-    Calculate the coefficient of variation for a variant's barcodes.
+    ``pandas`` apply function for calculating the coefficient of variation 
+    for a variant's barcodes.
     """
     bc_scores = barcode_data.ix[mapping.variants[row.name]]['score']
     bc_scores = bc_scores[np.invert(np.isnan(bc_scores))]
@@ -29,19 +30,26 @@ def barcode_variation_apply_fn(row, barcode_data, mapping):
 
 def barcode_count_apply_fn(row, mapping):
     """
-    Calculate the coefficient of variation for a variant's barcodes.
+    ``pandas`` apply function for counting the number of unique barcodes for a
+    variant.
     """
     return len(mapping.variants[row.name])
 
 
 def barcode_varation_filter(row, cutoff):
-    if row['bc.cv'] > cutoff:
+    """
+    Filtering function for barcode coefficient of variation.
+    """
+    if row['barcode.cv'] > cutoff:
         return False
     else:
         return True
 
 
 def min_count_filter(row, cutoff):
+    """
+    Filtering function for minimum counts across all timepoints.
+    """
     counts = row[[x for x in row.index if x.startswith("count")]].values
     if counts.min() < cutoff:
         return False
@@ -50,6 +58,9 @@ def min_count_filter(row, cutoff):
 
 
 def min_input_count_filter(row, cutoff):
+    """
+    Filtering function for minimum count in input timepoint.
+    """
     if row['count.0'] < cutoff:
         return False
     else:
