@@ -68,8 +68,10 @@ def min_input_count_filter(row, cutoff):
 
 
 def min_rsq_filter(row, cutoff):
-    # keep anything without an r-squared value
-    # those can be filtered out separately
+    """
+    Filtering function for minimum r-squared value. Entries with no 
+    r-squared value are retained.
+    """
     if np.isnan(row['r_sq']):
         return True
     elif row['r_sq'] < cutoff:
@@ -79,6 +81,10 @@ def min_rsq_filter(row, cutoff):
 
 
 def enrichment_apply_fn(row, timepoints):
+    """
+    ``pandas`` apply function for calculating enrichment scores and 
+    r-squared values.
+    """
     if math.isnan(row[0]):
         # not present in input library
         score = float("NaN")
@@ -103,6 +109,11 @@ def enrichment_apply_fn(row, timepoints):
 
 
 class Selection(object):
+    """
+    Class for a single selection experiment, consisting of multiple timepoints. 
+    This class coordinates :py:class:`SeqLib` objects. Creating a :py:class:`Selection` requires a valid *config* object, usually from a  
+    ``.json`` configuration file.
+    """
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
         self.libraries = dict()
@@ -174,7 +185,7 @@ class Selection(object):
         dtype_counts = Counter(dtype_counts)
         for dtype in dtype_counts:
             if dtype_counts[dtype] == len(config['libraries']):
-                self.data[dtype] = dict()
+                self.data[dtype] = True
         if 'barcodes_unmapped' in self.data.keys(): # special case for BarcodeVariantSeqLib
             del self.data['barcodes_unmapped']
         if len(self.data.keys()) == 0:
@@ -199,6 +210,13 @@ class Selection(object):
 
 
     def enable_logging(self, log):
+        """
+        Turns on log output for this object. Messages will be sent to the 
+        open file handle *log*. 
+
+        .. note:: One log file is usually shared by all objects in the \
+        analysis. This method is invoked by :py:class:`Experiment` logging functions.
+        """
         self.verbose = True
         self.log = log
         try:
@@ -211,15 +229,23 @@ class Selection(object):
                 lib.enable_logging(log)
 
 
-    def set_filters(self, config, default_filters):
+    def set_filters(self, config_filters, default_filters):
+        """
+        Sets the filtering options using the values from the 
+        *config_filters* dictionary and *default_filters* dictionary. 
+        This method is used by the ``__init__`` method of *SeqLib* subclasses.
+
+        .. note:: To help prevent user error, *config_filters* must be a \
+        subset of *default_filters*.
+        """
         self.filters = default_filters
 
         for key in self.filters:
-            if key in config['filters']:
-                self.filters[key] = config['filters'][key]
+            if key in config_filters:
+                self.filters[key] = config_filters[key]
 
         unused = list()
-        for key in config['filters']:
+        for key in config_filters:
             if key not in self.filters:
                 unused.append(key)
         if len(unused) > 0:
@@ -232,43 +258,83 @@ class Selection(object):
         self.filter_stats['total'] = 0
 
 
-    def get_counts(self):
-        # calculate counts for each timepoint
+    def count_timepoints(self):
+        """
+        Combine :py:class:`SeqLib` objects into individual timepoints and 
+        tabulate counts for each timepoint. Counts are stored in the local
+        ``pandas`` DataFrame. To tabulate counts for individual mutations 
+        (not variants), see :py:meth:`count_mutations`.
+        """
+        # calculate counts for each SeqLib
         for tp in self.timepoints:
             for lib in self.libraries[tp]:
                 lib.count()
-            for dtype in self.data:
-                tp_data = self.libraries[tp][0].counts[dtype]
-                for lib in self.libraries[tp][1:]:
-                    tp_data = tp_data.add(lib.counts[dtype], fill_value=0)
-                self.data[dtype][tp] = tp_data
+        for dtype in self.data:
+            self.calc_counts(dtype)
+        for tp in self.timepoints:
             for lib in self.libraries[tp]:
                 lib.save_counts(self.hdf_dir, clear=True)
 
-        # combine into a single dataframe
-        for dtype in self.data:
-            tp_data = self.data[dtype][0]
-            cnames = ["%s.0" % x for x in self.data[dtype][0].columns]
-            for tp in self.timepoints[1:]:
-                tp_data = tp_data.join(self.data[dtype][tp], 
-                                     how="outer",
+
+    def calc_counts(self, dtype):
+        """
+        Tabulate counts for each timepoint and create the DataFrame indicated by 
+        *dtype* ('variant' or 'barcode'). All :py:class:`SeqLib` objects need to 
+        be counted before calling this method.
+        """
+        # combine all libraries for a given timepoint
+        self.data[dtype] = dict()
+        for tp in self.timepoints:
+            tp_data = self.libraries[tp][0].counts[dtype]
+            for lib in self.libraries[tp][1:]:
+                tp_data = tp_data.add(lib.counts[dtype], fill_value=0)
+            self.data[dtype][tp] = tp_data
+
+        tp_frame = self.data[dtype][0]
+        cnames = ["%s.0" % x for x in self.data[dtype][0].columns]
+        for tp in self.timepoints[1:]:
+            tp_frame = tp_frame.join(self.data[dtype][tp], how="outer", 
                                      rsuffix="%s" % tp)
-                cnames += ["%s.%d" % (x, tp) for x in \
-                           self.data[dtype][tp].columns]
-            tp_data.columns = cnames
-            # remove data that are not in the initial timepoint
-            tp_data = tp_data[np.invert(np.isnan(tp_data['count.0']))]
-            self.data[dtype] = tp_data
+            cnames += ["%s.%d" % (x, tp) for x in \
+                       self.data[dtype][tp].columns]
+        tp_frame.columns = cnames
+        # remove data that are not in the initial timepoint
+        tp_frame = tp_frame[np.invert(np.isnan(tp_frame['count.0']))]
+        self.data[dtype] = tp_frame
+
+
+    def count_mutations(self):
+        # needs to happen all the filtering/exclusion of variants
+        for lib in self.libraries:
+            lib.count_mutations()
+
+        for dtype in ('mutations_nt', 'mutations_aa'):
+            if dtype in self.data.keys():
+                self.calc_counts(dtype)
+                self.calc_frequencies(dtype)
+                self.calc_ratios(dtype)
+                self.calc_enrichments(dtype)
 
 
     def calc_all(self):
+        """
+        Wrapper method to calculate counts, frequencies, ratios, and enrichment scores 
+        for all data in the :py:class:`Selection`.
+        """
+        self.get_counts()
         for dtype in self.data:
             self.calc_frequencies(dtype)
             self.calc_ratios(dtype)
             self.calc_enrichments(dtype)
+        if 'variants' in self.data and 'barcodes' in self.data:
+            self.calc_barcode_variation()
 
 
     def calc_frequencies(self, dtype):
+        """
+        Calculate frequencies for each element in the DataFrame indicated by 
+        *dtype* ('variant' or 'barcode').
+        """
         for tp in self.timepoints:
             self.data[dtype]['frequency.%d' % tp] =  \
                 self.data[dtype]['count.%d' % tp] / \
@@ -276,6 +342,11 @@ class Selection(object):
 
 
     def calc_ratios(self, dtype):
+        """
+        Calculate ratios for each element in the DataFrame indicated by 
+        *dtype* ('variant' or 'barcode'). Assumes frequencies have been 
+        calculated by :py:meth:`calc_frequencies`.
+        """
         for tp in self.timepoints:
             if tp == 0: # input library
                 self.data[dtype]['ratio.%d' % tp] = 1.0
@@ -286,6 +357,12 @@ class Selection(object):
 
 
     def calc_enrichments(self, dtype):
+        """
+        Calculate enrichment scores and r-squared values for each element in the DataFrame indicated by 
+        *dtype* ('variant' or 'barcode'). Assumes ratios have been 
+        calculated by :py:meth:`calc_ratios`. Calculations performed using 
+        :py:func:`enrichment_apply_fn`.
+        """
         # apply the enrichment-calculating function to a DataFrame
         # containing only ratio data
         ratio_df = self.data[dtype][['ratio.%d' % x for x in self.timepoints]]
@@ -295,26 +372,20 @@ class Selection(object):
 
 
     def calc_barcode_variation(self):
-        if 'variants' in self.data and 'barcodes' in self.data:
-            self.data['variants']['barcode.count'] = \
-                    self.data['variants'].apply(barcode_count_apply_fn, 
-                    axis=1, args=[self.barcode_map]).astype("int32")
-            barcode_cv = self.data['variants'].apply(\
-                    barcode_variation_apply_fn, axis=1,
-                    args=[self.data['barcodes'], self.barcode_map])
-            self.data['variants']['scored.unique.barcodes'] = \
-                    barcode_cv['scored.unique.barcodes'].astype("int32")
-            self.data['variants']['barcode.cv'] = barcode_cv['barcode.cv']
-
-
-    def count_mutations(self):
-        # needs to happen all the filtering/exclusion of variants
-        for lib in self.libraries:
-            lib.count_mutations()
-
-        for key in ('mutations_nt', 'mutations_aa'):
-            self.enrichments[key] = dict()
-            self.calc_enrichments(key)
+        """
+        Calculate the `coefficient of variation <http://en.wikipedia.org/wiki/Coefficient_of_variation>`_ 
+        for each variant's barcode enrichment scores. Requires both variant and barcode 
+        data for all timepoints.
+        """
+        self.data['variants']['barcode.count'] = \
+                self.data['variants'].apply(barcode_count_apply_fn, 
+                axis=1, args=[self.barcode_map]).astype("int32")
+        barcode_cv = self.data['variants'].apply(\
+                barcode_variation_apply_fn, axis=1,
+                args=[self.data['barcodes'], self.barcode_map])
+        self.data['variants']['scored.unique.barcodes'] = \
+                barcode_cv['scored.unique.barcodes'].astype("int32")
+        self.data['variants']['barcode.cv'] = barcode_cv['barcode.cv']
 
 
     def adjust_frequencies(self, frequencies, timepoint, dtype):

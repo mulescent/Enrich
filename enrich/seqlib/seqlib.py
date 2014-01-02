@@ -10,7 +10,7 @@ import os.path
 class SeqLib(object):
     """
     Abstract class for handling count data from a single sequencing library.
-    Creating a *SeqLib* requires a valid *config* object, usually from a  
+    Creating a :py:class:`SeqLib` requires a valid *config* object, usually from a  
     ``.json`` configuration file.
     """
 
@@ -60,7 +60,7 @@ class SeqLib(object):
         open file handle *log*. 
 
         .. note:: One log file is usually shared by all objects in the \
-        analysis. This method is invoked by **Selection** logging functions.
+        analysis. This method is invoked by :py:class:`Selection` logging functions.
         """
         self.verbose = True
         self.log = log
@@ -79,20 +79,20 @@ class SeqLib(object):
         raise NotImplementedError("must be implemented by subclass")
 
 
-    def set_filters(self, config_filters, class_default_filters):
+    def set_filters(self, config_filters, default_filters):
         """
         Sets the filtering options using the values from the 
-        *config_filters* dictionary and *class_default_filters* dictionary. 
+        *config_filters* dictionary and *default_filters* dictionary. 
         This method is used by the ``__init__`` method of *SeqLib* subclasses.
 
         .. note:: To help prevent user error, *config_filters* must be a \
-        subset of *class_default_filters*.
+        subset of *default_filters*.
         """
-        self.filters = class_default_filters
+        self.filters = default_filters
 
         for key in self.filters:
             if key in config_filters:
-                self.filters[key] = int(config['filters'][key])
+                self.filters[key] = int(config_filters[key])
 
         unused = list()
         for key in config_filters:
@@ -110,7 +110,7 @@ class SeqLib(object):
 
     def report_filtered_read(self, handle, fq, filter_flags):
         """
-        Outputs the **FQRead** object *fq* to *handle* (usually the object's
+        Outputs the :py:class:`FQRead` object *fq* to *handle* (usually the object's
         log file). The dictionary *filter_flags* contains ``True`` values for 
         each filtering option that applies to *fq*. Keys in *filter_flags* 
         are converted to messages using the ``SeqLib._filter_messages`` 

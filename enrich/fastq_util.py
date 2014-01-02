@@ -58,7 +58,7 @@ class FQRead(object):
 
     def __str__(self):
         """
-        Reformat as a four-line FASTQ record. This method converts the integer
+        Reformat as a four-line `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ record. This method converts the integer
         quality values back into a string.
         """
         return '\n'.join([self.header, self.sequence, self.header2, 
@@ -74,7 +74,7 @@ class FQRead(object):
 
     def trim(self, start=1, end=-1):
         """
-        Trims this FQRead to contain bases between *start* and *end* 
+        Trims this :py:class:`FQRead` to contain bases between *start* and *end* 
         (inclusive). Bases are numbered starting at 1.
         """
         self.sequence = self.sequence[start - 1:end]
@@ -83,16 +83,16 @@ class FQRead(object):
 
     def trim_length(self, length, start=1):
         """
-        Trims this FQRead to contain *length* bases, beginning with *start*. 
-        Bases are numbered starting at 1.
+        Trims this :py:class:`FQRead` to contain *length* bases, beginning 
+        with *start*. Bases are numbered starting at 1.
         """
         self.trim(start=start, end=start + length - 1)
 
 
     def reverse(self):
         """
-        Reverse-complement the sequence in place. The sequence is 
-        reverse-complemented and the quality values are reversed.
+        Reverse-complement the sequence in place. Also reverses the array of 
+        quality values.
         """
         self.sequence = self.sequence.translate(dna_trans)[::-1]
         self.quality = self.quality[::-1]
@@ -100,7 +100,7 @@ class FQRead(object):
 
     def header_information(self, pattern=header_pattern):
         """
-        Parses the first FASTQ header (@) and returns a dictionary. 
+        Parses the first `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ header (@) and returns a dictionary. 
         Dictionary keys are the named groups in the regular expression 
         *pattern*. Unnamed matches are ignored. Integer values are converted 
         from strings to integers.
@@ -132,8 +132,8 @@ class FQRead(object):
 
     def is_chaste(self):
         """
-        Returns True if the chastity bit is set in the FASTQ header. The 
-        regular experession used by ``header_information`` must include  
+        Returns True if the chastity bit is set in the `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ header. The 
+        regular experession used by :py:meth:`header_information` must include  
         a 'Chastity' match that equals 1 if the read is chaste.
         """
         try:
@@ -148,9 +148,9 @@ class FQRead(object):
 
 def check_fastq(fname):
     """
-    Check that *fname* exists and has a valid FASTQ file extension. Returns 
+    Check that *fname* exists and has a valid `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file extension. Returns 
     ``None`` if the file exists and the extension is recognized (.fastq 
-    or .fq), otherwise raise an ``IOError``.
+    or .fq), otherwise raise an `IOError <http://docs.python.org/2/library/exceptions.html>`_.
     """
     if os.path.isfile(fname):
         ext = os.path.splitext(fname)[-1].lower()
@@ -165,13 +165,13 @@ def check_fastq(fname):
 
 def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE, qbase=33):
     """
-    Generator function for reading from FASTQ file *fname*. Yields an FQRead 
-    object for each FASTQ record in the file. The *filter_function* must 
-    operate on an FQRead object and return ``True`` or ``False``. If the 
+    Generator function for reading from `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file *fname*. Yields an FQRead 
+    object for each `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ record in the file. The *filter_function* must 
+    operate on an :py:class:`FQRead` object and return ``True`` or ``False``. If the 
     result is ``False``, the record will be skipped silently.
 
     .. note:: To read multiple files in parallel (such as index or \
-        forward/reverse reads), use ``read_fastq_multi`` instead.
+        forward/reverse reads), use :py:meth:`read_fastq_multi` instead.
     """
     check_fastq(fname)
     handle = open(fname, "U")
@@ -214,15 +214,15 @@ def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE, qbase=33):
 def read_fastq_multi(fnames, filter_function=None, buffer_size=BUFFER_SIZE,
                      match_lengths=True, qbase=33):
     """
-    Generator function for reading from multiple FASTQ files in parallel. 
-    The argument *fnames* is an iterable of FASTQ file names. Yields a tuple 
-    of FQRead objects, one for each file in *fnames*. The *filter_function* 
-    must operate on an FQRead object and return ``True`` or ``False``. If the 
-    result is ``False`` for any FQRead in the tuple, the entire tuple will
+    Generator function for reading from multiple `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ files in parallel. 
+    The argument *fnames* is an iterable of `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file names. Yields a tuple 
+    of :py:class:`FQRead` objects, one for each file in *fnames*. The *filter_function* 
+    must operate on an :py:class:`FQRead` object and return ``True`` or ``False``. If the 
+    result is ``False`` for any :py:class:`FQRead` in the tuple, the entire tuple will
     be skipped.
 
     If *match_lengths* is ``True``, the generator will yield ``None`` if the 
-    files do not contain the same number of FASTQ records. Otherwise, it will 
+    files do not contain the same number of `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ records. Otherwise, it will 
     silently ignore partial records.
     """
     fq_generators = list()
@@ -247,8 +247,8 @@ def read_fastq_multi(fnames, filter_function=None, buffer_size=BUFFER_SIZE,
 
 def fastq_filter_chastity(fq):
     """
-    Filtering function for ``read_fastq`` and ``read_fastq_multi``. Returns 
-    ``True`` if the FQRead *fq* is chaste.
+    Filtering function for :py:meth:`read_fastq` and :py:meth:`read_fastq_multi`. Returns 
+    ``True`` if the :py:class:`FQRead` *fq* is chaste.
     """
     return fq.is_chaste()
 
