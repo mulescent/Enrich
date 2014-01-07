@@ -48,3 +48,29 @@ class Experiment(object):
                         (self.name, time.asctime()), file=self.log)
         except (IOError, AttributeError):
             raise EnrichException("Could not write to log file", self.name)
+
+
+    def set_filters(self, config_filters, default_filters):
+        """
+        Sets the filtering options using the values from the 
+        *config_filters* dictionary and *default_filters* dictionary. Filtering 
+        options include consistency of scores across replicates.
+
+        .. note:: To help prevent user error, *config_filters* must be a \
+        subset of *default_filters*.
+        """
+        pass
+
+
+    def calc_selection_scores(self):
+        """
+        Calculate scores for all :py:class:`Selection` objects.
+        """
+        pass
+
+
+    def filter_data(self):
+        """
+        Filter everything.
+        """
+        pass

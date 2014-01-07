@@ -263,7 +263,8 @@ class Selection(object):
         """
         Sets the filtering options using the values from the 
         *config_filters* dictionary and *default_filters* dictionary. 
-        This method is used by the ``__init__`` method of *SeqLib* subclasses.
+        Filters include minimum read counts and barcode consistency 
+        metrics (if all libraries are :py:class:`BarcodeVariantSeqLib` objects).
 
         .. note:: To help prevent user error, *config_filters* must be a \
         subset of *default_filters*.
