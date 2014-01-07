@@ -5,6 +5,7 @@
 
 Welcome to Enrich2's documentation!
 ===================================
+Enrich is an analysis pipeline for using high throughput sequencing data to assess protein sequence-function relationships.
 
 .. image:: c09.jpg
 	:width: 600
