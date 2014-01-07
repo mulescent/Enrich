@@ -13,6 +13,12 @@ from sys import stdout, stderr
 
 
 class BarcodeMap(dict):
+    """
+    Dictionary-type class for storing the relationship between barcodes and variants. 
+    Requires the path to a *mapfile*, containing lines in the format 'barcode<tab>variant' 
+    for each barcode expected in the library. Stores a second dictionary, variants, storing 
+    a list of barcodes assigned to a given variant.
+    """
     def __init__(self, mapfile):
         self.name = "mapfile_%s" % mapfile
         try:
@@ -47,10 +53,19 @@ class BarcodeMap(dict):
             else:
                 self[barcode] = variant
         handle.close()
+
+        # build the variants dictionary
         self.variants = dict()
+        for bc in self.keys():
+            if self[bc] not in self.variants:
+                self.variants[self[bc]] = list()
+            self.variants[self[bc]].append(bc)
 
 
     def write_variants(self, fname):
+        """
+        Write a list of barcodes for each variant to the file *fname*.
+        """
         try:
             handle = open(fname, "w")
         except IOError:
@@ -63,6 +78,10 @@ class BarcodeMap(dict):
 
 
 class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
+    """
+    Class for counting variant data from barcoded sequencing libraries. Creating a :py:class:`BarcodeVariantSeqLib` requires a valid *config* object with an 
+    ``'barcodes'`` entry and information about the wild type sequence.
+    """
     def __init__(self, config, barcode_map=None):
         VariantSeqLib.__init__(self, config)
         BarcodeSeqLib.__init__(self, config, parent=False)
@@ -90,6 +109,10 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
 
 
     def count(self):
+        """
+        Counts the barcodes using :py:meth:`BarcodeSeqLib.count` and combines them into 
+        variant counts using the :py:class:`BarcodeMap`.
+        """
         BarcodeSeqLib.count(self) # count the barcodes
         self.counts['variants'] = dict()
 
@@ -126,6 +149,10 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
 
 
     def orphan_barcodes(self, mincount=0):
+        """
+        Returns a list of barcodes that are not found in the object's :py:class:`BarcodeMap` 
+        but are present in the library more than *mincount* times.
+        """
         orphans = [x in self.barcode_map for x in \
                    self.counts['barcodes'].index]
         return self.counts['barcodes'][orphans] \
@@ -133,6 +160,11 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
 
 
     def report_filtered_variant(self, handle, variant, count):
+        """
+        Outputs a summary of the filtered variant to *handle*. Internal filter 
+        names are converted to messages using the ``SeqLib._filter_messages`` 
+        dictionary. Related to :py:meth:`SeqLib.report_filtered`.
+        """
         print("Filtered variant (%s)" % \
                     (SeqLib._filter_messages['max mutations']), file=handle)
         print(variant, file=handle)

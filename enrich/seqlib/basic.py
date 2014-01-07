@@ -4,6 +4,10 @@ from fastq_util import read_fastq, check_fastq
 
 
 class BasicSeqLib(VariantSeqLib):
+    """
+    Class for count data from sequencing libraries with a single read for each variant.
+    Creating a :py:class:`BasicSeqLib` requires a valid *config* .
+    """
     def __init__(self, config):
         VariantSeqLib.__init__(self, config)
         try:
@@ -32,6 +36,11 @@ class BasicSeqLib(VariantSeqLib):
 
 
     def count(self):
+        """
+        Reads the forward or reverse FASTQ file (reverse reads are reverse-complemented),
+        performs quality-based filtering, and 
+        counts the variants.
+        """
         self.counts['variants'] = dict()
 
         # flags for verbose output of filtered reads

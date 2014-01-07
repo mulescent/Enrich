@@ -1,8 +1,5 @@
 from __future__ import print_function
 from sys import stderr
-
-
-
 from variant import VariantSeqLib
 from enrich_error import EnrichError
 from fastq_util import read_fastq_multi, check_fastq, FQRead
@@ -10,6 +7,11 @@ import pandas as pd
 
 
 class OverlapSeqLib(VariantSeqLib):
+    """
+    Class for count data from sequencing libraries with overlapping paired-end reads for each variant.
+    Creating a :py:class:`OverlapSeqLib` requires a valid *config* object with an 
+    ``'overlap'`` entry.
+    """
     def __init__(self, config):
         VariantSeqLib.__init__(self, config)
         try:
@@ -45,6 +47,15 @@ class OverlapSeqLib(VariantSeqLib):
 
 
     def fuse_reads(self, fwd, rev):
+        """
+        Combines the *fwd* and *rev* :py:class:`FQRead` objects into a single 
+        :py:class:`FQRead` with the same header information as *fwd*. Mismatches 
+        are resolved by taking the highest quality base. If discrepant bases have 
+        the same quality value, this position is unresolvable and an ``'X'`` is 
+        inserted. Quality values in the resulting :py:class:`FQRead` are the 
+        maximum quality for the given base at that position. Returns ``None`` if 
+        the maximum number of mismatches in the overlap region is exceded.
+        """
         rev.reverse()
 
         rev_extra_start = len(rev) - self.rev_start + 1
@@ -86,6 +97,11 @@ class OverlapSeqLib(VariantSeqLib):
 
 
     def count(self):
+        """
+        Reads the forward and reverse reads, merges them, performs quality-based filtering, 
+        and counts the 
+        variants.
+        """
         self.counts['variants'] = dict()
 
         # flags for verbose output of filtered reads

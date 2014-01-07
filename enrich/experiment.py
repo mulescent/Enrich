@@ -4,6 +4,12 @@ import selection
 
 
 class Experiment(object):
+    """
+    Class for a coordinating multiple :py:class:`Selection` objects. The :py:class:`Selection` objects 
+    are assigned as replicates of experimental conditions. 
+    Creating an :py:class:`Experiment` requires a valid *config* object, usually from a  
+    ``.json`` configuration file.
+    """
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
         self.verbose = False
@@ -28,6 +34,13 @@ class Experiment(object):
 
 
     def enable_logging(self, log):
+        """
+        Turns on log output for this object. Messages will be sent to the 
+        open file handle *log*. 
+
+        .. note:: One log file is usually shared by all objects in the \
+        analysis.
+        """
         self.verbose = True
         self.log = log
         try:

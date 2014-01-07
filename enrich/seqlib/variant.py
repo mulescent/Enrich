@@ -65,13 +65,8 @@ def has_indel(variant):
 
 class VariantSeqLib(SeqLib):
     """
-    Abstract class for data from an Enrich library containing variants.
-
-    Implements core functionality for assessing variants, either coding
-    or noncoding.
-
-    Subclasess should implement the required functionality to get the  
-    variant DNA sequences that are being assessed.
+    Abstract :py:class:`SeqLib` class for for Enrich libraries containing variants. Implements core functionality for assessing variants, either coding
+    or noncoding. Subclasess must evaluate the variant DNA sequences that are being counted.
     """
     def __init__(self, config, parent=True):
         if parent:
@@ -113,11 +108,9 @@ class VariantSeqLib(SeqLib):
 
     def set_wt(self, sequence, coding=True):
         """
-        Set the wild type DNA sequence (and protein sequence if applicable).
-
-        The DNA sequence must not contain ambiguity characters, but may 
-        contain whitespace (which will be removed). If the sequence encodes a
-        protein, it must be in-frame.
+        Set the wild type DNA *sequence*. The *sequence* is translated if *coding* 
+        is ``True``. The *sequence* may only contain ``ACGT``, but may 
+        contain whitespace (which will be removed). If *coding*, *sequence* must be in-frame.
         """
         sequence = "".join(sequence.split()) # remove whitespace
 
@@ -139,6 +132,12 @@ class VariantSeqLib(SeqLib):
 
 
     def align_variant(self, variant_dna):
+        """
+        Use the local :py:class:`Aligner` to align the *variant_dna* to the 
+        wild type sequence. Returns a list of HGVS variant strings.
+
+        .. warning:: Using the :py:class:`Aligner` dramatically increases runtime.
+        """
         mutations = list()
         traceback = self.aligner.align(self.wt_dna, variant_dna)
         for x, y, cat, length in traceback:
@@ -164,12 +163,12 @@ class VariantSeqLib(SeqLib):
 
     def count_variant(self, variant_dna, copies=1, include_indels=True):
         """
-        Identify and count the variant.
-
+        Identifies mutations and counts the *variant_dna* sequence.
         The algorithm attempts to call variants by comparing base-by-base.
-        If the variant and wild type DNA are different lengths, or if there
+        If the *variant_dna* and wild type DNA are different lengths, or if there
         are an excess of mismatches (indicating a possible indel), local
-        alignment is performed.
+        alignment is performed using :py:meth:`align_variant` if this option 
+        has been selected in the configuration.
 
         Each variant is stored as a tab-delimited string of mutations in HGVS 
         format. Returns a list of HGSV variant strings. Returns an empty list 
@@ -248,17 +247,58 @@ class VariantSeqLib(SeqLib):
 
     def count_mutations(self, include_indels=False):
         """
-        Count the individual mutations in all variants.
-
-        If include_indels is False, all mutations in a variant that contains 
-        an insertion/deletion/duplication will not be counted.
-
-        For coding sequences, amino acid substitutions are counted
+        Count the individual mutations in all variants. If *include_indels* is ``False``, all mutations in a variant that contains 
+        an insertion/deletion/duplication will not be counted. For coding sequences, amino acid substitutions are counted
         independently of the corresponding nucleotide change.
         """
-        # read the DataFrame output file for this SeqLib
-        # initialize a new dictionary
-        # split the DataFrame file variants into the dictionary
-        # convert the new dictionary into a DataFrame
-        pass
+        # restore the counts if they were saved to disk
+        if self.counts['variants'] is None:
+            self.load_counts(keys=['variants'])
+
+        # create new dictionaries
+        self.counts['mutations_nt'] = dict()
+        if self.is_coding():
+            self.counts['mutations_aa'] = dict()
+
+        if not include_indels:
+            mask = self.counts['variants'].index.map(has_indel)
+            variant_data = self.counts['variants'][np.invert(mask)]
+            del mask
+        else:
+            variant_data = self.counts['variants']
+        if self.is_coding():
+            for variant, count in variant_data.iterrows():
+                count = count['count'] # get the element from the Series
+                mutations = variant.split(", ")
+                # get just the nucleotide changes
+                for m in mutations:
+                    m = m.split(" (")[0]
+                    try:
+                        self.counts['mutations_nt'][m] += count
+                    except KeyError:
+                        self.counts['mutations_nt'][m] = count
+                # get the amino acid changes
+                aa_changes = re.findall("p\.[A-Z][a-z][a-z]\d+[A-Z][a-z][a-z]", variant)
+                for a in aa_changes:
+                    try:
+                        self.counts['mutations_aa'][a] += count
+                    except KeyError:
+                        self.counts['mutations_aa'][a] = count
+        else:
+            for variant, count in variant_data.iterrows():
+                count = count['count'] # get the element from the Series
+                mutations = variant.split(", ")
+                for m in mutations:
+                    try:
+                        self.counts['mutations_nt'][m] += count
+                    except KeyError:
+                        self.counts['mutations_nt'][m] = count
+
+        self.counts['mutations_nt'] = \
+                pd.DataFrame.from_dict(self.counts['mutations_nt'], 
+                                       orient="index", dtype="int32")
+        if self.is_coding():
+            self.counts['mutations_aa'] = \
+                    pd.DataFrame.from_dict(self.counts['mutations_aa'], 
+                                           orient="index", dtype="int32")
 

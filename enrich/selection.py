@@ -5,6 +5,7 @@ from seqlib.basic import BasicSeqLib
 from seqlib.barcodevariant import BarcodeVariantSeqLib, BarcodeMap
 from seqlib.overlap import OverlapSeqLib
 import os
+import re
 import math
 import itertools
 import time
@@ -14,6 +15,22 @@ from collections import Counter
 
 
 from sys import stdout, stderr
+
+
+def nonsense_ns_carryover_apply_fn(row, position):
+    """
+    ``pandas`` apply function for determining which rows contribute counts 
+    to nonspecific carryover calculations. Returns ``True`` if the variant  
+    has a change to stop at or before amino acid number *position*.
+    """
+    m = re.search("p\.[A-Z][a-z][a-z](\d+)Ter", row.name)
+    if m is not None:
+        if int(m.group(1)) <= position:
+            return True
+        else:
+            return False
+    else:
+        return False
 
 
 def barcode_variation_apply_fn(row, barcode_data, mapping):
@@ -164,9 +181,22 @@ class Selection(object):
                                       'min rsquared' : 0.0,
                                       'max barcode variation' : None})
 
+            if 'carryover correction' in config:
+                if config['carrover correction']['method'] == "nonsense":
+                    self.ns_carryover_fn = nonsense_ns_carryover_apply_fn
+                    self.ns_carryover_kwargs = {'position' : int(config['carryover correction']['position'])}
+                # add additional methods here using "elif" blocks
+                else:
+                    raise EnrichError("Unrecognized nonspecific carryover correction", self.name)
+            else:
+                self.ns_carryover_fn = None
+                self.ns_carryover_kwargs = None
+
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, 
                               self.name)
+        except ValueError as value:
+            raise EnrichError("Invalid parameter value %s" % value, self.name)
 
         if len(self.libraries.keys()) < 2:
             raise EnrichError("Insufficient number of timepoints", 
@@ -304,6 +334,12 @@ class Selection(object):
 
 
     def count_mutations(self):
+        """
+        Creates and populates DataFrames for individual mutations. This method 
+        should be called after all filtering has been completed. The new 
+        DataFrames have dtype 'mutations_nt' and 'mutations_aa' (only if the 
+        data set is coding).
+        """
         # needs to happen all the filtering/exclusion of variants
         for lib in self.libraries:
             lib.count_mutations()
@@ -321,13 +357,16 @@ class Selection(object):
         Wrapper method to calculate counts, frequencies, ratios, and enrichment scores 
         for all data in the :py:class:`Selection`.
         """
-        self.get_counts()
+        self.count_timepoints()
+        if self.ns_carryover_fn is not None:
+            self.nonspecific_carryover(self.ns_carryover_fn, **self.ns_carryover_kwargs)
         for dtype in self.data:
             self.calc_frequencies(dtype)
             self.calc_ratios(dtype)
             self.calc_enrichments(dtype)
         if 'variants' in self.data and 'barcodes' in self.data:
             self.calc_barcode_variation()
+        self.save_data()
 
 
     def calc_frequencies(self, dtype):
@@ -388,35 +427,39 @@ class Selection(object):
         self.data['variants']['barcode.cv'] = barcode_cv['barcode.cv']
 
 
-    def adjust_frequencies(self, frequencies, timepoint, dtype):
+    def nonspecific_carryover(self, ns_apply_fn, **kwargs):
         """
-        Replace frequencies with a corrected frequency for given timepoint.
-
-        Corrected values overwrite the "raw" frequencies in the data
-        DataFrame. To adjust all frequencies in the DataFrame, this method 
-        must be invoked once for each timepoint.
-
-        Frequencies must be a DataFrame with one column. Indices present in 
-        freuqences that are not present in the Selection DataFrame will not 
-        be added to the DataFrame.
+        Correct the counts in the 'variants' DataFrame for nonspecific carryover. 
+        Nonspecific counts are defined by *ns_apply_fn* and its *kwargs*, which 
+        takes a row as an argument and returns ``True`` if the row's counts 
+        are nonspecific.
         """
-        if timepoint not in self.timepoints:
-            raise EnrichError("Timepoint not found", self.name)
-        else:
-            self.data[dtype]['frequency.%d' % timepoint] = frequencies[0]
-
-
-    def write_enrichments(self, directory):
-        enrichment_dir = os.path.join(directory, "enrichments")
-        if not os.path.exists(enrichment_dir):
-            os.makedirs(enrichment_dir)
-        for dtype in self.data:
-            fname = os.path.join(enrichment_dir, dtype + ".tsv")
-            self.data[dtype].to_csv(fname, sep="\t", na_rep="NaN", 
-                                    index_label="sequence")
+        dtype = 'variants'
+        ns_data = self.data[dtype][self.data[dtype].apply(ns_apply_fn, axis=1, **kwargs)]
+        read_totals = [self.data[dtype]['count.%d' % tp].sum() \
+                       for tp in self.timepoints]
+        read_totals = dict(zip(self.timepoints, read_totals))
+        ns_frequencies = [ns_data['count.%d' % tp].sum() / \
+                             read_totals[tp] for tp in self.timepoints]
+        ns_frequencies = dict(zip(self.timepoints, ns_frequencies))
+        for tp in self.timepoints[1:]: # don't modify time 0
+            ns_mod = (ns_frequencies[tp] / ns_frequencies[0]) * (read_totals[tp] / read_totals[0])
+            self.data[dtype]['count.%d' % tp] = self.data[dtype]['count.%d' % tp] * ns_mod
+            self.data[dtype]['count.%d' % tp] = self.data[dtype]['count.%d' % tp].astype("int32")
 
 
     def save_data(self, directory, keys=None, clear=False):
+        """
+        Save the DataFrames as tab-separated files in *directory*. The 
+        file names are stored in the ``self.data_file`` dictionary.
+
+        The optional *keys* parameter is a list of types of counts to be 
+        saved. By default, all counts are saved.
+
+        If *clear* is ``True``, saved data will be set to ``None`` after 
+        writing. This is used to save memory. If needed later, the data 
+        can be restored using :py:meth:`load_data`.
+        """
         if keys is None:
             keys = self.data.keys()
         for key in keys:
@@ -425,7 +468,7 @@ class Selection(object):
                 os.makedirs(output_dir)
             fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
             fname = fname.replace(' ', '_')
-            self.data_file[key] = os.path.join(output_dir, fname + ".h5")
+            self.data_file[key] = os.path.join(output_dir, fname + ".tsv")
             self.data[key].to_csv(self.data_file[key], 
                     sep="\t", na_rep="NaN", float_format="%.4g", 
                     index_label="sequence")
@@ -434,11 +477,29 @@ class Selection(object):
 
 
     def load_data(self):
-        for key in self.data_file:
-            self.data[key] = pd.from_csv(self.data_file[key], sep="\t")
+        """
+        Load the data from the ``.tsv`` files in the ``self.data_file`` 
+        dictionary.
+
+        The optional *keys* parameter is a list of types of counts to be 
+        loaded. By default, all counts are loaded.
+        """
+        if keys is None:
+            keys = self.data_file.keys()
+        else:
+            if not all(key in self.data_file.keys() for key in keys):
+                raise EnrichError("Cannot load unsaved counts", self.name)
+        for key in keys:
+            self.counts[key] = pd.from_csv(self.data_file[key], sep="\t")
 
 
     def filter_data(self):
+        """
+        Apply the filtering functions to the data, based on the filter 
+        options present in the configuration object. Filtering is performed 
+        using the appropriate apply function. Frequencies, ratios, and 
+        enrichments must be recalculated after filtering.
+        """
         self.save_data(os.path.join(self.hdf_dir, "selection_prefilter"), 
                        clear=False)
         # for each filter that's specified
@@ -478,8 +539,4 @@ class Selection(object):
 
         self.filter_stats['total'] = sum(self.filter_stats.values())
 
-        # recalculate with the updated (post-filter) frequencies
-        self.calc_frequencies('variants')
-        self.calc_ratios('variants')
-        self.calc_enrichments('variants')
 

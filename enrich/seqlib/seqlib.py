@@ -49,7 +49,7 @@ class SeqLib(object):
 
         # initialize data
         self.counts = dict()        # pandas dataframes
-        self.counts_file = dict()   # paths to pickled counts
+        self.counts_file = dict()   # paths to saved counts
         self.filters = None         # dictionary
         self.filter_stats = None    # dictionary
 
@@ -142,17 +142,15 @@ class SeqLib(object):
 
     def save_counts(self, directory, keys=None, clear=False):
         """
-        Save the counts DataFrame as a tab-separated file in *directory*. The 
-        counts are saved as ``barcode.tsv`` and/or ``variant.tsv`` as 
-        appropriate for the analysis. The file names are stored in the 
-        ``self.counts_file`` dictionary.
+        Save the counts DataFrame as a tab-separated file in *directory*. 
+        The file names are stored in the ``self.counts_file`` dictionary.
 
         The optional *keys* parameter is a list of types of counts to be 
         saved. By default, all counts are saved.
 
         If *clear* is ``True``, saved counts will be set to ``None`` after 
         writing. This is used to save memory. If needed later, the counts 
-        can be restored using ``load_counts``.
+        can be restored using :py:meth:`load_counts`.
         """
         if keys is None:
             keys = self.counts.keys()
@@ -162,7 +160,7 @@ class SeqLib(object):
                 os.makedirs(output_dir)
             fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
             fname = fname.replace(' ', '_')
-            self.counts_file[key] = os.path.join(output_dir, fname + ".txt")
+            self.counts_file[key] = os.path.join(output_dir, fname + ".tsv")
             self.counts[key].to_csv(self.counts_file[key], 
                     sep="\t", na_rep="NaN", float_format="%.4g", 
                     index_label="sequence")

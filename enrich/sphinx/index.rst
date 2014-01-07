@@ -6,19 +6,17 @@
 Welcome to Enrich2's documentation!
 ===================================
 
-* *such document*
-* *so read*
-* *very inform*
-
 .. image:: c09.jpg
 	:width: 600
 
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    seqlib
+   selection
+   experiment
 
 Indices and tables
 ==================

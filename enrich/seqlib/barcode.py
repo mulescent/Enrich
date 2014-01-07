@@ -10,6 +10,11 @@ from sys import stdout, stderr
 
 
 class BarcodeSeqLib(SeqLib):
+    """
+    Class for count data from barcoded sequencing libraries. Designed to be used for 
+    barcode-only quantification or as a parent class. Creating a :py:class:`BarcodeSeqLib` requires a valid *config* object with an 
+    ``'barcodes'`` entry.
+    """
     def __init__(self, config, parent=True):
         if parent:
             SeqLib.__init__(self, config)
@@ -55,6 +60,11 @@ class BarcodeSeqLib(SeqLib):
 
 
     def count(self):
+        """
+        Reads the forward or reverse FASTQ file (reverse reads are reverse-complemented),
+        performs quality-based filtering, and 
+        counts the barcodes.
+        """
         self.counts['barcodes'] = dict()
 
         # flags for verbose output of filtered reads

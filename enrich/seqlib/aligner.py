@@ -14,6 +14,9 @@ _simple_similarity = {
 
 
 class Aligner(object):
+    """
+    Class for performing Needleman-Wunsch local alignment.
+    """
     _MAT = 1    # match
     _INS = 2    # insertion (with respect to wild type)
     _DEL = 3    # deletion (with respect to wild type)
@@ -38,6 +41,10 @@ class Aligner(object):
 
 
     def align(self, seq1, seq2):
+        """
+        Aligns the two sequences, *seq1* and *seq2*. Returns a list of tuples 
+        describing the differences between the sequences.
+        """
         self.matrix = np.ndarray(shape=(len(seq1) + 1, len(seq2) + 1), \
                 dtype=np.dtype([('score', np.int), ('trace', np.byte)]))
         seq1 = seq1.upper()

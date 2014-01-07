@@ -4,6 +4,7 @@ Documentation for SeqLib Classes
 
 SeqLib classes contain data for individual sequencing libraries and their associated count data.
 
+
 **************************
 SeqLib
 **************************
@@ -11,10 +12,15 @@ SeqLib
 	:members:
 
 ==========================
+BarcodeSeqLib
+==========================
+.. automodule:: seqlib.barcode
+	:members:
+	:show-inheritance:
+	
+==========================
 VariantSeqLib
 ==========================
-Some text.
-
 .. automodule:: seqlib.variant
 	:members:
 	:show-inheritance:
@@ -22,8 +28,6 @@ Some text.
 ---------------------------
 BasicSeqLib
 ---------------------------
-Some text.
-
 .. automodule:: seqlib.basic
 	:members:
 	:show-inheritance:
@@ -31,8 +35,6 @@ Some text.
 ---------------------------
 OverlapSeqLib
 ---------------------------
-Some text.
-
 .. automodule:: seqlib.overlap
 	:members:
 	:show-inheritance:
@@ -40,18 +42,6 @@ Some text.
 ---------------------------
 BarcodeVariantSeqLib
 ---------------------------
-Some text.
-
 .. automodule:: seqlib.barcodevariant
 	:members:
 	:show-inheritance:
-
-==========================
-BarcodeSeqLib
-==========================
-Some text.
-
-.. automodule:: seqlib.barcode
-	:members:
-	:show-inheritance:
-	
