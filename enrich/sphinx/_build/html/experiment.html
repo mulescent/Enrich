@@ -1,0 +1,140 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Documentation for Experiment &mdash; Enrich2 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Enrich2 2.0 documentation" href="index.html" />
+    <link rel="prev" title="Documentation for Selection" href="selection.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="selection.html" title="Documentation for Selection"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="documentation-for-experiment">
+<h1>Documentation for Experiment<a class="headerlink" href="#documentation-for-experiment" title="Permalink to this headline">¶</a></h1>
+<p>The Experiment class organizes the data from <tt class="xref py py-class docutils literal"><span class="pre">Selection</span></tt> objects into experimental conditions and replicate analyses.</p>
+<div class="section" id="module-experiment">
+<span id="experiment"></span><h2>Experiment<a class="headerlink" href="#module-experiment" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="experiment.Experiment">
+<em class="property">class </em><tt class="descclassname">experiment.</tt><tt class="descname">Experiment</tt><big>(</big><em>config</em><big>)</big><a class="headerlink" href="#experiment.Experiment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for a coordinating multiple <tt class="xref py py-class docutils literal"><span class="pre">Selection</span></tt> objects. The <tt class="xref py py-class docutils literal"><span class="pre">Selection</span></tt> objects 
+are assigned as replicates of experimental conditions. 
+Creating an <a class="reference internal" href="#experiment.Experiment" title="experiment.Experiment"><tt class="xref py py-class docutils literal"><span class="pre">Experiment</span></tt></a> requires a valid <em>config</em> object, usually from a  
+<tt class="docutils literal"><span class="pre">.json</span></tt> configuration file.</p>
+<dl class="method">
+<dt id="experiment.Experiment.enable_logging">
+<tt class="descname">enable_logging</tt><big>(</big><em>log</em><big>)</big><a class="headerlink" href="#experiment.Experiment.enable_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns on log output for this object. Messages will be sent to the 
+open file handle <em>log</em>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">One log file is usually shared by all objects in the         analysis.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Documentation for Experiment</a><ul>
+<li><a class="reference internal" href="#module-experiment">Experiment</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="selection.html"
+                        title="previous chapter">Documentation for Selection</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/experiment.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="selection.html" title="Documentation for Selection"
+             >previous</a> |</li>
+        <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Alan F Rubin and Douglas M Fowler.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

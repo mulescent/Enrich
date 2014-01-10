@@ -1,0 +1,396 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Documentation for SeqLib Classes &mdash; Enrich2 2.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Enrich2 2.0 documentation" href="index.html" />
+    <link rel="next" title="Documentation for Selection" href="selection.html" />
+    <link rel="prev" title="Welcome to Enrich2’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="selection.html" title="Documentation for Selection"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Enrich2’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="documentation-for-seqlib-classes">
+<h1>Documentation for SeqLib Classes<a class="headerlink" href="#documentation-for-seqlib-classes" title="Permalink to this headline">¶</a></h1>
+<p>SeqLib classes contain data for individual sequencing libraries and their associated count data.</p>
+<div class="section" id="module-seqlib.seqlib">
+<span id="seqlib"></span><h2>SeqLib<a class="headerlink" href="#module-seqlib.seqlib" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="seqlib.seqlib.SeqLib">
+<em class="property">class </em><tt class="descclassname">seqlib.seqlib.</tt><tt class="descname">SeqLib</tt><big>(</big><em>config</em><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Abstract class for handling count data from a single sequencing library.
+Creating a <a class="reference internal" href="#seqlib.seqlib.SeqLib" title="seqlib.seqlib.SeqLib"><tt class="xref py py-class docutils literal"><span class="pre">SeqLib</span></tt></a> requires a valid <em>config</em> object, usually from a  
+<tt class="docutils literal"><span class="pre">.json</span></tt> configuration file.</p>
+<dl class="method">
+<dt id="seqlib.seqlib.SeqLib.count">
+<tt class="descname">count</tt><big>(</big><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method defines how the data is counted. It must be implemented 
+by each subclass.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.seqlib.SeqLib.enable_logging">
+<tt class="descname">enable_logging</tt><big>(</big><em>log</em><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib.enable_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns on log output for this object. Messages will be sent to the 
+open file handle <em>log</em>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">One log file is usually shared by all objects in the         analysis. This method is invoked by <tt class="xref py py-class docutils literal"><span class="pre">Selection</span></tt> logging functions.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.seqlib.SeqLib.load_counts">
+<tt class="descname">load_counts</tt><big>(</big><em>keys=None</em><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib.load_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the counts from the <tt class="docutils literal"><span class="pre">.tsv</span></tt> files in the <tt class="docutils literal"><span class="pre">self.counts_file</span></tt> 
+dictionary.</p>
+<p>The optional <em>keys</em> parameter is a list of types of counts to be 
+loaded. By default, all counts are loaded.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.seqlib.SeqLib.report_filtered">
+<tt class="descname">report_filtered</tt><big>(</big><em>handle</em><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib.report_filtered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a summary of filtered reads to <em>handle</em>. Internal filter 
+names are converted to messages using the <tt class="docutils literal"><span class="pre">SeqLib._filter_messages</span></tt> 
+dictionary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.seqlib.SeqLib.report_filtered_read">
+<tt class="descname">report_filtered_read</tt><big>(</big><em>handle</em>, <em>fq</em>, <em>filter_flags</em><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib.report_filtered_read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs the <tt class="xref py py-class docutils literal"><span class="pre">FQRead</span></tt> object <em>fq</em> to <em>handle</em> (usually the object&#8217;s
+log file). The dictionary <em>filter_flags</em> contains <tt class="docutils literal"><span class="pre">True</span></tt> values for 
+each filtering option that applies to <em>fq</em>. Keys in <em>filter_flags</em> 
+are converted to messages using the <tt class="docutils literal"><span class="pre">SeqLib._filter_messages</span></tt> 
+dictionary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.seqlib.SeqLib.save_counts">
+<tt class="descname">save_counts</tt><big>(</big><em>directory</em>, <em>keys=None</em>, <em>clear=False</em><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib.save_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the counts DataFrame as a tab-separated file in <em>directory</em>. 
+The file names are stored in the <tt class="docutils literal"><span class="pre">self.counts_file</span></tt> dictionary.</p>
+<p>The optional <em>keys</em> parameter is a list of types of counts to be 
+saved. By default, all counts are saved.</p>
+<p>If <em>clear</em> is <tt class="docutils literal"><span class="pre">True</span></tt>, saved counts will be set to <tt class="docutils literal"><span class="pre">None</span></tt> after 
+writing. This is used to save memory. If needed later, the counts 
+can be restored using <a class="reference internal" href="#seqlib.seqlib.SeqLib.load_counts" title="seqlib.seqlib.SeqLib.load_counts"><tt class="xref py py-meth docutils literal"><span class="pre">load_counts()</span></tt></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.seqlib.SeqLib.set_filters">
+<tt class="descname">set_filters</tt><big>(</big><em>config_filters</em>, <em>default_filters</em><big>)</big><a class="headerlink" href="#seqlib.seqlib.SeqLib.set_filters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the filtering options using the values from the 
+<em>config_filters</em> dictionary and <em>default_filters</em> dictionary. 
+This method is used by the <tt class="docutils literal"><span class="pre">__init__</span></tt> method of <em>SeqLib</em> subclasses.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To help prevent user error, <em>config_filters</em> must be a         subset of <em>default_filters</em>.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="module-seqlib.barcode">
+<span id="barcodeseqlib"></span><h3>BarcodeSeqLib<a class="headerlink" href="#module-seqlib.barcode" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="seqlib.barcode.BarcodeSeqLib">
+<em class="property">class </em><tt class="descclassname">seqlib.barcode.</tt><tt class="descname">BarcodeSeqLib</tt><big>(</big><em>config</em>, <em>parent=True</em><big>)</big><a class="headerlink" href="#seqlib.barcode.BarcodeSeqLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#seqlib.seqlib.SeqLib" title="seqlib.seqlib.SeqLib"><tt class="xref py py-class docutils literal"><span class="pre">seqlib.seqlib.SeqLib</span></tt></a></p>
+<p>Class for count data from barcoded sequencing libraries. Designed to be used for 
+barcode-only quantification or as a parent class. Creating a <a class="reference internal" href="#seqlib.barcode.BarcodeSeqLib" title="seqlib.barcode.BarcodeSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">BarcodeSeqLib</span></tt></a> requires a valid <em>config</em> object with an 
+<tt class="docutils literal"><span class="pre">'barcodes'</span></tt> entry.</p>
+<dl class="method">
+<dt id="seqlib.barcode.BarcodeSeqLib.count">
+<tt class="descname">count</tt><big>(</big><big>)</big><a class="headerlink" href="#seqlib.barcode.BarcodeSeqLib.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the forward or reverse FASTQ file (reverse reads are reverse-complemented),
+performs quality-based filtering, and 
+counts the barcodes.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-seqlib.variant">
+<span id="variantseqlib"></span><h3>VariantSeqLib<a class="headerlink" href="#module-seqlib.variant" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="seqlib.variant.VariantSeqLib">
+<em class="property">class </em><tt class="descclassname">seqlib.variant.</tt><tt class="descname">VariantSeqLib</tt><big>(</big><em>config</em>, <em>parent=True</em><big>)</big><a class="headerlink" href="#seqlib.variant.VariantSeqLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#seqlib.seqlib.SeqLib" title="seqlib.seqlib.SeqLib"><tt class="xref py py-class docutils literal"><span class="pre">seqlib.seqlib.SeqLib</span></tt></a></p>
+<p>Abstract <tt class="xref py py-class docutils literal"><span class="pre">SeqLib</span></tt> class for for Enrich libraries containing variants. Implements core functionality for assessing variants, either coding
+or noncoding. Subclasess must evaluate the variant DNA sequences that are being counted.</p>
+<dl class="method">
+<dt id="seqlib.variant.VariantSeqLib.align_variant">
+<tt class="descname">align_variant</tt><big>(</big><em>variant_dna</em><big>)</big><a class="headerlink" href="#seqlib.variant.VariantSeqLib.align_variant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use the local <tt class="xref py py-class docutils literal"><span class="pre">Aligner</span></tt> to align the <em>variant_dna</em> to the 
+wild type sequence. Returns a list of HGVS variant strings.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Using the <tt class="xref py py-class docutils literal"><span class="pre">Aligner</span></tt> dramatically increases runtime.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.variant.VariantSeqLib.count_mutations">
+<tt class="descname">count_mutations</tt><big>(</big><em>include_indels=False</em><big>)</big><a class="headerlink" href="#seqlib.variant.VariantSeqLib.count_mutations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count the individual mutations in all variants. If <em>include_indels</em> is <tt class="docutils literal"><span class="pre">False</span></tt>, all mutations in a variant that contains 
+an insertion/deletion/duplication will not be counted. For coding sequences, amino acid substitutions are counted
+independently of the corresponding nucleotide change.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.variant.VariantSeqLib.count_variant">
+<tt class="descname">count_variant</tt><big>(</big><em>variant_dna</em>, <em>copies=1</em>, <em>include_indels=True</em><big>)</big><a class="headerlink" href="#seqlib.variant.VariantSeqLib.count_variant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies mutations and counts the <em>variant_dna</em> sequence.
+The algorithm attempts to call variants by comparing base-by-base.
+If the <em>variant_dna</em> and wild type DNA are different lengths, or if there
+are an excess of mismatches (indicating a possible indel), local
+alignment is performed using <a class="reference internal" href="#seqlib.variant.VariantSeqLib.align_variant" title="seqlib.variant.VariantSeqLib.align_variant"><tt class="xref py py-meth docutils literal"><span class="pre">align_variant()</span></tt></a> if this option 
+has been selected in the configuration.</p>
+<p>Each variant is stored as a tab-delimited string of mutations in HGVS 
+format. Returns a list of HGSV variant strings. Returns an empty list 
+if the variant is wild type. Returns None if the variant was discarded
+due to excess mismatches.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.variant.VariantSeqLib.set_wt">
+<tt class="descname">set_wt</tt><big>(</big><em>sequence</em>, <em>coding=True</em><big>)</big><a class="headerlink" href="#seqlib.variant.VariantSeqLib.set_wt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the wild type DNA <em>sequence</em>. The <em>sequence</em> is translated if <em>coding</em> 
+is <tt class="docutils literal"><span class="pre">True</span></tt>. The <em>sequence</em> may only contain <tt class="docutils literal"><span class="pre">ACGT</span></tt>, but may 
+contain whitespace (which will be removed). If <em>coding</em>, <em>sequence</em> must be in-frame.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="seqlib.variant.has_indel">
+<tt class="descclassname">seqlib.variant.</tt><tt class="descname">has_indel</tt><big>(</big><em>variant</em><big>)</big><a class="headerlink" href="#seqlib.variant.has_indel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function that returns <tt class="docutils literal"><span class="pre">True</span></tt> if the HGVS string <em>variant</em> 
+contains an indel mutation.</p>
+</dd></dl>
+
+<div class="section" id="module-seqlib.basic">
+<span id="basicseqlib"></span><h4>BasicSeqLib<a class="headerlink" href="#module-seqlib.basic" title="Permalink to this headline">¶</a></h4>
+<dl class="class">
+<dt id="seqlib.basic.BasicSeqLib">
+<em class="property">class </em><tt class="descclassname">seqlib.basic.</tt><tt class="descname">BasicSeqLib</tt><big>(</big><em>config</em><big>)</big><a class="headerlink" href="#seqlib.basic.BasicSeqLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#seqlib.variant.VariantSeqLib" title="seqlib.variant.VariantSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">seqlib.variant.VariantSeqLib</span></tt></a></p>
+<p>Class for count data from sequencing libraries with a single read for each variant.
+Creating a <a class="reference internal" href="#seqlib.basic.BasicSeqLib" title="seqlib.basic.BasicSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">BasicSeqLib</span></tt></a> requires a valid <em>config</em> .</p>
+<dl class="method">
+<dt id="seqlib.basic.BasicSeqLib.count">
+<tt class="descname">count</tt><big>(</big><big>)</big><a class="headerlink" href="#seqlib.basic.BasicSeqLib.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the forward or reverse FASTQ file (reverse reads are reverse-complemented),
+performs quality-based filtering, and 
+counts the variants.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-seqlib.overlap">
+<span id="overlapseqlib"></span><h4>OverlapSeqLib<a class="headerlink" href="#module-seqlib.overlap" title="Permalink to this headline">¶</a></h4>
+<dl class="class">
+<dt id="seqlib.overlap.OverlapSeqLib">
+<em class="property">class </em><tt class="descclassname">seqlib.overlap.</tt><tt class="descname">OverlapSeqLib</tt><big>(</big><em>config</em><big>)</big><a class="headerlink" href="#seqlib.overlap.OverlapSeqLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#seqlib.variant.VariantSeqLib" title="seqlib.variant.VariantSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">seqlib.variant.VariantSeqLib</span></tt></a></p>
+<p>Class for count data from sequencing libraries with overlapping paired-end reads for each variant.
+Creating a <a class="reference internal" href="#seqlib.overlap.OverlapSeqLib" title="seqlib.overlap.OverlapSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">OverlapSeqLib</span></tt></a> requires a valid <em>config</em> object with an 
+<tt class="docutils literal"><span class="pre">'overlap'</span></tt> entry.</p>
+<dl class="method">
+<dt id="seqlib.overlap.OverlapSeqLib.count">
+<tt class="descname">count</tt><big>(</big><big>)</big><a class="headerlink" href="#seqlib.overlap.OverlapSeqLib.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the forward and reverse reads, merges them, performs quality-based filtering, 
+and counts the 
+variants.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.overlap.OverlapSeqLib.fuse_reads">
+<tt class="descname">fuse_reads</tt><big>(</big><em>fwd</em>, <em>rev</em><big>)</big><a class="headerlink" href="#seqlib.overlap.OverlapSeqLib.fuse_reads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combines the <em>fwd</em> and <em>rev</em> <tt class="xref py py-class docutils literal"><span class="pre">FQRead</span></tt> objects into a single 
+<tt class="xref py py-class docutils literal"><span class="pre">FQRead</span></tt> with the same header information as <em>fwd</em>. Mismatches 
+are resolved by taking the highest quality base. If discrepant bases have 
+the same quality value, this position is unresolvable and an <tt class="docutils literal"><span class="pre">'X'</span></tt> is 
+inserted. Quality values in the resulting <tt class="xref py py-class docutils literal"><span class="pre">FQRead</span></tt> are the 
+maximum quality for the given base at that position. Returns <tt class="docutils literal"><span class="pre">None</span></tt> if 
+the maximum number of mismatches in the overlap region is exceded.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-seqlib.barcodevariant">
+<span id="barcodevariantseqlib"></span><h4>BarcodeVariantSeqLib<a class="headerlink" href="#module-seqlib.barcodevariant" title="Permalink to this headline">¶</a></h4>
+<dl class="class">
+<dt id="seqlib.barcodevariant.BarcodeMap">
+<em class="property">class </em><tt class="descclassname">seqlib.barcodevariant.</tt><tt class="descname">BarcodeMap</tt><big>(</big><em>mapfile</em><big>)</big><a class="headerlink" href="#seqlib.barcodevariant.BarcodeMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></p>
+<p>Dictionary-type class for storing the relationship between barcodes and variants. 
+Requires the path to a <em>mapfile</em>, containing lines in the format &#8216;barcode&lt;tab&gt;variant&#8217; 
+for each barcode expected in the library. Stores a second dictionary, variants, storing 
+a list of barcodes assigned to a given variant.</p>
+<dl class="method">
+<dt id="seqlib.barcodevariant.BarcodeMap.write_variants">
+<tt class="descname">write_variants</tt><big>(</big><em>fname</em><big>)</big><a class="headerlink" href="#seqlib.barcodevariant.BarcodeMap.write_variants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a list of barcodes for each variant to the file <em>fname</em>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="seqlib.barcodevariant.BarcodeVariantSeqLib">
+<em class="property">class </em><tt class="descclassname">seqlib.barcodevariant.</tt><tt class="descname">BarcodeVariantSeqLib</tt><big>(</big><em>config</em>, <em>barcode_map=None</em><big>)</big><a class="headerlink" href="#seqlib.barcodevariant.BarcodeVariantSeqLib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#seqlib.variant.VariantSeqLib" title="seqlib.variant.VariantSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">seqlib.variant.VariantSeqLib</span></tt></a>, <a class="reference internal" href="#seqlib.barcode.BarcodeSeqLib" title="seqlib.barcode.BarcodeSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">seqlib.barcode.BarcodeSeqLib</span></tt></a></p>
+<p>Class for counting variant data from barcoded sequencing libraries. Creating a <a class="reference internal" href="#seqlib.barcodevariant.BarcodeVariantSeqLib" title="seqlib.barcodevariant.BarcodeVariantSeqLib"><tt class="xref py py-class docutils literal"><span class="pre">BarcodeVariantSeqLib</span></tt></a> requires a valid <em>config</em> object with an 
+<tt class="docutils literal"><span class="pre">'barcodes'</span></tt> entry and information about the wild type sequence.</p>
+<dl class="method">
+<dt id="seqlib.barcodevariant.BarcodeVariantSeqLib.count">
+<tt class="descname">count</tt><big>(</big><big>)</big><a class="headerlink" href="#seqlib.barcodevariant.BarcodeVariantSeqLib.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Counts the barcodes using <tt class="xref py py-meth docutils literal"><span class="pre">BarcodeSeqLib.count()</span></tt> and combines them into 
+variant counts using the <a class="reference internal" href="#seqlib.barcodevariant.BarcodeMap" title="seqlib.barcodevariant.BarcodeMap"><tt class="xref py py-class docutils literal"><span class="pre">BarcodeMap</span></tt></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.barcodevariant.BarcodeVariantSeqLib.orphan_barcodes">
+<tt class="descname">orphan_barcodes</tt><big>(</big><em>mincount=0</em><big>)</big><a class="headerlink" href="#seqlib.barcodevariant.BarcodeVariantSeqLib.orphan_barcodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of barcodes that are not found in the object&#8217;s <a class="reference internal" href="#seqlib.barcodevariant.BarcodeMap" title="seqlib.barcodevariant.BarcodeMap"><tt class="xref py py-class docutils literal"><span class="pre">BarcodeMap</span></tt></a> 
+but are present in the library more than <em>mincount</em> times.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="seqlib.barcodevariant.BarcodeVariantSeqLib.report_filtered_variant">
+<tt class="descname">report_filtered_variant</tt><big>(</big><em>handle</em>, <em>variant</em>, <em>count</em><big>)</big><a class="headerlink" href="#seqlib.barcodevariant.BarcodeVariantSeqLib.report_filtered_variant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a summary of the filtered variant to <em>handle</em>. Internal filter 
+names are converted to messages using the <tt class="docutils literal"><span class="pre">SeqLib._filter_messages</span></tt> 
+dictionary. Related to <tt class="xref py py-meth docutils literal"><span class="pre">SeqLib.report_filtered()</span></tt>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Documentation for SeqLib Classes</a><ul>
+<li><a class="reference internal" href="#module-seqlib.seqlib">SeqLib</a><ul>
+<li><a class="reference internal" href="#module-seqlib.barcode">BarcodeSeqLib</a></li>
+<li><a class="reference internal" href="#module-seqlib.variant">VariantSeqLib</a><ul>
+<li><a class="reference internal" href="#module-seqlib.basic">BasicSeqLib</a></li>
+<li><a class="reference internal" href="#module-seqlib.overlap">OverlapSeqLib</a></li>
+<li><a class="reference internal" href="#module-seqlib.barcodevariant">BarcodeVariantSeqLib</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Enrich2&#8217;s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="selection.html"
+                        title="next chapter">Documentation for Selection</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/seqlib.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="selection.html" title="Documentation for Selection"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Enrich2’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Alan F Rubin and Douglas M Fowler.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

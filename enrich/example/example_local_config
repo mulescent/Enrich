@@ -38,7 +38,7 @@
 <Ncount_max>0</Ncount_max>
 <avg_quality>20</avg_quality>
 <chaste>y</chaste>
-<gap_max>0</gap_max>
+<gap_max>0</gap_max>bbroc
 <input_filename_aligner>unsel_example_F_index_filtered_B</input_filename_aligner>
 <maximum_mutation_run>3</maximum_mutation_run>
 <sel_filename_aligner>sel_example_F_index_filtered_B</sel_filename_aligner>
