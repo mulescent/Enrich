@@ -66,7 +66,9 @@ class Experiment(object):
         """
         Calculate scores for all :py:class:`Selection` objects.
         """
-        pass
+        for c in self.conditions:
+            for sel in self.conditions[c]:
+                sel.calc_all()
 
 
     def filter_data(self):

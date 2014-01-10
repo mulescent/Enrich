@@ -176,7 +176,7 @@ class Selection(object):
             if len(set(libnames)) != len(libnames):
                 raise EnrichError("Non-unique library names", self.name)
 
-            self.set_filters(config, {'min count' : 0,
+            self.set_filters(config['filters'], {'min count' : 0,
                                       'min input count' : 0,
                                       'min rsquared' : 0.0,
                                       'max barcode variation' : None})
@@ -280,7 +280,7 @@ class Selection(object):
             if key not in self.filters:
                 unused.append(key)
         if len(unused) > 0:
-            raise EnrichError("Unused filter parameters (%s)" % 
+            raise EnrichError("Unused filter parameters (%s)" % \
                               ', '.join(unused), self.name)
 
         self.filter_stats = dict()
@@ -367,7 +367,6 @@ class Selection(object):
             self.calc_enrichments(dtype)
         if 'variants' in self.data and 'barcodes' in self.data:
             self.calc_barcode_variation()
-        self.save_data()
 
 
     def calc_frequencies(self, dtype):
@@ -444,8 +443,8 @@ class Selection(object):
                              read_totals[tp] for tp in self.timepoints]
         ns_frequencies = dict(zip(self.timepoints, ns_frequencies))
         for tp in self.timepoints[1:]: # don't modify time 0
-            ns_mod = (ns_frequencies[tp] / ns_frequencies[0]) * (read_totals[tp] / read_totals[0])
-            self.data[dtype]['count.%d' % tp] = self.data[dtype]['count.%d' % tp] * ns_mod
+            ns_mod = (ns_frequencies[tp] / ns_frequencies[0])
+            self.data[dtype]['count.%d' % tp] = self.data[dtype]['count.%d' % tp] - self.data[dtype]['count.%d' % tp] * ns_mod
             self.data[dtype]['count.%d' % tp] = self.data[dtype]['count.%d' % tp].astype("int32")
 
 
