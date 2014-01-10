@@ -1,6 +1,7 @@
 from __future__ import print_function
 from enrich_error import EnrichError
 import selection
+import time
 
 
 class Experiment(object):
@@ -22,7 +23,7 @@ class Experiment(object):
             for cnd in config['conditions']:
                 if not cnd['label'].isalnum():
                     raise EnrichError("Alphanumeric label required for condition '%s'" % cnd['label'], self.name)
-                self.conditions[cnd['label']] = cnd['selections']
+                self.conditions[cnd['label']] = [selection.Selection(x) for x in cnd['selections']]
                 if cnd['control']:
                     if self.control is None:
                         self.control = self.conditions[cnd['label']]
