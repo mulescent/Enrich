@@ -134,8 +134,8 @@ class Selection(object):
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
         self.libraries = dict()
-        self.data = dict()
-        self.data_file = dict()
+        self.df_dict = dict()
+        self.df_file = dict()
         self.timepoints = list()
         self.verbose = False
         self.log = None
@@ -215,10 +215,10 @@ class Selection(object):
         dtype_counts = Counter(dtype_counts)
         for dtype in dtype_counts:
             if dtype_counts[dtype] == len(config['libraries']):
-                self.data[dtype] = True
-        if 'barcodes_unmapped' in self.data.keys(): # special case for BarcodeVariantSeqLib
-            del self.data['barcodes_unmapped']
-        if len(self.data.keys()) == 0:
+                self.df_dict[dtype] = True
+        if 'barcodes_unmapped' in self.df_dict.keys(): # special case for BarcodeVariantSeqLib
+            del self.df_dict['barcodes_unmapped']
+        if len(self.df_dict.keys()) == 0:
             raise EnrichError("No count data present across all timepoints", 
                               self.name)
 
@@ -235,8 +235,6 @@ class Selection(object):
                 self.correction = None
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, self.name)
-
-        self.enrichments = dict()
 
 
     def enable_logging(self, log):
@@ -300,7 +298,7 @@ class Selection(object):
         for tp in self.timepoints:
             for lib in self.libraries[tp]:
                 lib.count()
-        for dtype in self.data:
+        for dtype in self.df_dict:
             self.calc_counts(dtype)
         for tp in self.timepoints:
             for lib in self.libraries[tp]:
@@ -314,24 +312,24 @@ class Selection(object):
         be counted before calling this method.
         """
         # combine all libraries for a given timepoint
-        self.data[dtype] = dict()
+        self.df_dict[dtype] = dict()
         for tp in self.timepoints:
             tp_data = self.libraries[tp][0].counts[dtype]
             for lib in self.libraries[tp][1:]:
                 tp_data = tp_data.add(lib.counts[dtype], fill_value=0)
-            self.data[dtype][tp] = tp_data
+            self.df_dict[dtype][tp] = tp_data
 
-        tp_frame = self.data[dtype][0]
-        cnames = ["%s.0" % x for x in self.data[dtype][0].columns]
+        tp_frame = self.df_dict[dtype][0]
+        cnames = ["%s.0" % x for x in self.df_dict[dtype][0].columns]
         for tp in self.timepoints[1:]:
-            tp_frame = tp_frame.join(self.data[dtype][tp], how="outer", 
+            tp_frame = tp_frame.join(self.df_dict[dtype][tp], how="outer", 
                                      rsuffix="%s" % tp)
             cnames += ["%s.%d" % (x, tp) for x in \
-                       self.data[dtype][tp].columns]
+                       self.df_dict[dtype][tp].columns]
         tp_frame.columns = cnames
         # remove data that are not in the initial timepoint
         tp_frame = tp_frame[np.invert(np.isnan(tp_frame['count.0']))]
-        self.data[dtype] = tp_frame
+        self.df_dict[dtype] = tp_frame
 
 
     def count_mutations(self):
@@ -346,7 +344,7 @@ class Selection(object):
             lib.count_mutations()
 
         for dtype in ('mutations_nt', 'mutations_aa'):
-            if dtype in self.data.keys():
+            if dtype in self.df_dict.keys():
                 self.calc_counts(dtype)
                 self.calc_frequencies(dtype)
                 self.calc_ratios(dtype)
@@ -361,11 +359,11 @@ class Selection(object):
         self.count_timepoints()
         if self.ns_carryover_fn is not None:
             self.nonspecific_carryover(self.ns_carryover_fn, **self.ns_carryover_kwargs)
-        for dtype in self.data:
+        for dtype in self.df_dict:
             self.calc_frequencies(dtype)
             self.calc_ratios(dtype)
             self.calc_enrichments(dtype)
-        if 'variants' in self.data and 'barcodes' in self.data:
+        if 'variants' in self.df_dict and 'barcodes' in self.df_dict:
             self.calc_barcode_variation()
 
 
@@ -375,9 +373,9 @@ class Selection(object):
         *dtype* ('variant' or 'barcode').
         """
         for tp in self.timepoints:
-            self.data[dtype]['frequency.%d' % tp] =  \
-                self.data[dtype]['count.%d' % tp] / \
-                float(self.data[dtype]['count.%d' % tp].sum())
+            self.df_dict[dtype]['frequency.%d' % tp] =  \
+                self.df_dict[dtype]['count.%d' % tp] / \
+                float(self.df_dict[dtype]['count.%d' % tp].sum())
 
 
     def calc_ratios(self, dtype):
@@ -388,11 +386,11 @@ class Selection(object):
         """
         for tp in self.timepoints:
             if tp == 0: # input library
-                self.data[dtype]['ratio.%d' % tp] = 1.0
+                self.df_dict[dtype]['ratio.%d' % tp] = 1.0
             else:
-                self.data[dtype]['ratio.%d' % tp] =  \
-                        self.data[dtype]['frequency.%d' % tp] / \
-                        self.data[dtype]['frequency.0']
+                self.df_dict[dtype]['ratio.%d' % tp] =  \
+                        self.df_dict[dtype]['frequency.%d' % tp] / \
+                        self.df_dict[dtype]['frequency.0']
 
 
     def calc_enrichments(self, dtype):
@@ -404,10 +402,10 @@ class Selection(object):
         """
         # apply the enrichment-calculating function to a DataFrame
         # containing only ratio data
-        ratio_df = self.data[dtype][['ratio.%d' % x for x in self.timepoints]]
+        ratio_df = self.df_dict[dtype][['ratio.%d' % x for x in self.timepoints]]
         enrichments = ratio_df.apply(enrichment_apply_fn, axis=1, args=[np.asarray(self.timepoints)])
-        self.data[dtype]['score'] = enrichments['score']
-        self.data[dtype]['r_sq'] = enrichments['r_sq']
+        self.df_dict[dtype]['score'] = enrichments['score']
+        self.df_dict[dtype]['r_sq'] = enrichments['r_sq']
 
 
     def calc_barcode_variation(self):
@@ -416,15 +414,15 @@ class Selection(object):
         for each variant's barcode enrichment scores. Requires both variant and barcode 
         data for all timepoints.
         """
-        self.data['variants']['barcode.count'] = \
-                self.data['variants'].apply(barcode_count_apply_fn, 
+        self.df_dict['variants']['barcode.count'] = \
+                self.df_dict['variants'].apply(barcode_count_apply_fn, 
                 axis=1, args=[self.barcode_map]).astype("int32")
-        barcode_cv = self.data['variants'].apply(\
+        barcode_cv = self.df_dict['variants'].apply(\
                 barcode_variation_apply_fn, axis=1,
-                args=[self.data['barcodes'], self.barcode_map])
-        self.data['variants']['scored.unique.barcodes'] = \
+                args=[self.df_dict['barcodes'], self.barcode_map])
+        self.df_dict['variants']['scored.unique.barcodes'] = \
                 barcode_cv['scored.unique.barcodes'].astype("int32")
-        self.data['variants']['barcode.cv'] = barcode_cv['barcode.cv']
+        self.df_dict['variants']['barcode.cv'] = barcode_cv['barcode.cv']
 
 
     def nonspecific_carryover(self, ns_apply_fn, **kwargs):
@@ -435,8 +433,8 @@ class Selection(object):
         are nonspecific.
         """
         dtype = 'variants'
-        ns_data = self.data[dtype][self.data[dtype].apply(ns_apply_fn, axis=1, **kwargs)]
-        read_totals = [self.data[dtype]['count.%d' % tp].sum() \
+        ns_data = self.df_dict[dtype][self.df_dict[dtype].apply(ns_apply_fn, axis=1, **kwargs)]
+        read_totals = [self.df_dict[dtype]['count.%d' % tp].sum() \
                        for tp in self.timepoints]
         read_totals = dict(zip(self.timepoints, read_totals))
         ns_frequencies = [ns_data['count.%d' % tp].sum() / \
@@ -444,14 +442,14 @@ class Selection(object):
         ns_frequencies = dict(zip(self.timepoints, ns_frequencies))
         for tp in self.timepoints[1:]: # don't modify time 0
             ns_mod = (ns_frequencies[tp] / ns_frequencies[0])
-            self.data[dtype]['count.%d' % tp] = self.data[dtype]['count.%d' % tp] - self.data[dtype]['count.%d' % tp] * ns_mod
-            self.data[dtype]['count.%d' % tp] = self.data[dtype]['count.%d' % tp].astype("int32")
+            self.df_dict[dtype]['count.%d' % tp] = self.df_dict[dtype]['count.%d' % tp] - self.df_dict[dtype]['count.%d' % tp] * ns_mod
+            self.df_dict[dtype]['count.%d' % tp] = self.df_dict[dtype]['count.%d' % tp].astype("int32")
 
 
     def save_data(self, directory, keys=None, clear=False):
         """
         Save the DataFrames as tab-separated files in *directory*. The 
-        file names are stored in the ``self.data_file`` dictionary.
+        file names are stored in the ``self.df_file`` dictionary.
 
         The optional *keys* parameter is a list of types of counts to be 
         saved. By default, all counts are saved.
@@ -461,36 +459,36 @@ class Selection(object):
         can be restored using :py:meth:`load_data`.
         """
         if keys is None:
-            keys = self.data.keys()
+            keys = self.df_dict.keys()
         for key in keys:
             output_dir = os.path.join(directory, key)
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
             fname = fname.replace(' ', '_')
-            self.data_file[key] = os.path.join(output_dir, fname + ".tsv")
-            self.data[key].to_csv(self.data_file[key], 
+            self.df_file[key] = os.path.join(output_dir, fname + ".tsv")
+            self.df_dict[key].to_csv(self.df_file[key], 
                     sep="\t", na_rep="NaN", float_format="%.4g", 
                     index_label="sequence")
             if clear:
-                self.data[key] = None
+                self.df_dict[key] = None
 
 
     def load_data(self):
         """
-        Load the data from the ``.tsv`` files in the ``self.data_file`` 
+        Load the data from the ``.tsv`` files in the ``self.df_file`` 
         dictionary.
 
         The optional *keys* parameter is a list of types of counts to be 
         loaded. By default, all counts are loaded.
         """
         if keys is None:
-            keys = self.data_file.keys()
+            keys = self.df_file.keys()
         else:
-            if not all(key in self.data_file.keys() for key in keys):
+            if not all(key in self.df_file.keys() for key in keys):
                 raise EnrichError("Cannot load unsaved counts", self.name)
         for key in keys:
-            self.counts[key] = pd.from_csv(self.data_file[key], sep="\t")
+            self.counts[key] = pd.from_csv(self.df_file[key], sep="\t")
 
 
     def filter_data(self):
@@ -505,37 +503,37 @@ class Selection(object):
         # for each filter that's specified
         # apply the filter
         if self.filters['max barcode variation']:
-            nrows = len(self.data['variants'])
-            self.data['variants'] = \
-                    self.data['variants'][self.data['variants'].apply(\
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
                         barcode_varation_filter, axis=1, 
                         args=[self.filters['max barcode variation']])]
             self.filter_stats['max barcode variation'] = \
-                    nrows - len(self.data['variants'])
+                    nrows - len(self.df_dict['variants'])
         if self.filters['min count'] > 0:
-            nrows = len(self.data['variants'])
-            self.data['variants'] = \
-                    self.data['variants'][self.data['variants'].apply(\
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
                         min_count_filter, axis=1, 
                         args=[self.filters['min count']])]
             self.filter_stats['min count'] = \
-                    nrows - len(self.data['variants'])
+                    nrows - len(self.df_dict['variants'])
         if self.filters['min input count'] > 0:
-            nrows = len(self.data['variants'])
-            self.data['variants'] = \
-                    self.data['variants'][self.data['variants'].apply(\
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
                         min_input_count_filter, axis=1, 
                         args=[self.filters['min count']])]
             self.filter_stats['min input count'] = \
-                    nrows - len(self.data['variants'])
+                    nrows - len(self.df_dict['variants'])
         if self.filters['min rsquared'] > 0.0:
-            nrows = len(self.data['variants'])
-            self.data['variants'] = \
-                    self.data['variants'][self.data['variants'].apply(\
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
                         min_rsq_filter, axis=1, 
                         args=[self.filters['min rsquared']])]
             self.filter_stats['min rsquared'] = \
-                    nrows - len(self.data['variants'])
+                    nrows - len(self.df_dict['variants'])
 
         self.filter_stats['total'] = sum(self.filter_stats.values())
 
