@@ -1,8 +1,6 @@
 from __future__ import print_function
 import time
 import pandas as pd
-import base64
-from sys import stdout, stderr
 from enrich_error import EnrichError
 import os.path
 
@@ -10,16 +8,28 @@ import os.path
 class SeqLib(object):
     """
     Abstract class for handling count data from a single sequencing library.
-    Creating a :py:class:`SeqLib` requires a valid *config* object, usually from a  
-    ``.json`` configuration file.
+    Creating a :py:class:`seqlib.seqlib.SeqLib` requires a valid *config* 
+    object, usually from a ``.json`` configuration file.
+
+    .. note:: Example configuration files can be found in the documentation \
+    for derived classes.
+
+    Log file messages for filtered reads are defined here in the 
+    ``_filter_messages`` dictionary. New read filtering options must have an 
+    associated log file output message added to the dictionary.
+
+    .. literalinclude:: ../seqlib/seqlib.py
+        :lines: 27-35
     """
 
+    # Note: the following block is referenced by line number in seqlib.rst
+    # When adding new messages, update the documentation line numbers also!
     _filter_messages = {
             'remove unresolvable' : "unresolvable mismatch",
             'min quality' : "single-base quality",
             'avg quality' : "average quality",
             'max mutations' : "excess mutations",
-			'chastity' : "not chaste",
+            'chastity' : "not chaste",
             'remove overlap indels' : "indel in read overlap",
             'fuser failure' : "unable to fuse reads"
     }
@@ -60,7 +70,7 @@ class SeqLib(object):
         open file handle *log*. 
 
         .. note:: One log file is usually shared by all objects in the \
-        analysis. This method is invoked by :py:class:`Selection` logging functions.
+        analysis.
         """
         self.verbose = True
         self.log = log
@@ -81,9 +91,8 @@ class SeqLib(object):
 
     def set_filters(self, config_filters, default_filters):
         """
-        Sets the filtering options using the values from the 
-        *config_filters* dictionary and *default_filters* dictionary. 
-        This method is used by the ``__init__`` method of *SeqLib* subclasses.
+        Sets the filtering options using the values from the *config_filters* 
+        dictionary and *default_filters* dictionary. 
 
         .. note:: To help prevent user error, *config_filters* must be a \
         subset of *default_filters*.
@@ -110,11 +119,11 @@ class SeqLib(object):
 
     def report_filtered_read(self, handle, fq, filter_flags):
         """
-        Outputs the :py:class:`FQRead` object *fq* to *handle* (usually the object's
-        log file). The dictionary *filter_flags* contains ``True`` values for 
-        each filtering option that applies to *fq*. Keys in *filter_flags* 
-        are converted to messages using the ``SeqLib._filter_messages`` 
-        dictionary.
+        Outputs the :py:class:`~fqread.FQRead` object *fq* to *handle* 
+        (usually a log file). The dictionary *filter_flags* contains ``True`` 
+        values for each filtering option that applies to *fq*. Keys in 
+        *filter_flags* are converted to messages using the 
+        ``SeqLib._filter_messages`` dictionary.
         """
         print("Filtered read (%s) [%s]" % \
                 (', '.join(SeqLib._filter_messages[x] 
@@ -125,9 +134,9 @@ class SeqLib(object):
 
     def report_filtered(self, handle):
         """
-        Outputs a summary of filtered reads to *handle*. Internal filter 
-        names are converted to messages using the ``SeqLib._filter_messages`` 
-        dictionary.
+        Outputs a summary of filtered reads to *handle* (usually a log file). 
+        Internal filter names are converted to messages using the 
+        ``SeqLib._filter_messages`` dictionary.
         """
         print('Number of filtered reads for "%s"' % self.name, file=handle)
         for key in sorted(self.filter_stats):

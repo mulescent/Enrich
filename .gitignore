@@ -213,3 +213,31 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+*.html
+
+*.doctree
+
+enrich/sphinx/_build/html/_downloads/basic.json
+
+enrich/sphinx/_build/html/_downloads/seqlib.json
+
+enrich/sphinx/_build/html/_sources/aligner.txt
+
+enrich/sphinx/_build/html/_sources/basic.txt
+
+enrich/sphinx/_build/html/_sources/config_examples.txt
+
+enrich/sphinx/_build/html/_sources/fqread.txt
+
+enrich/sphinx/_build/html/_sources/json.txt
+
+enrich/sphinx/_build/doctrees/environment.pickle
+
+enrich/sphinx/_build/doctrees/environment.pickle
+
+enrich/sphinx/_build/doctrees/environment.pickle
+
+enrich/sphinx/_build/doctrees/environment.pickle
+
+enrich/sphinx/_build/doctrees/experiment.doctree

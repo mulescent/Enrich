@@ -133,10 +133,10 @@ class VariantSeqLib(SeqLib):
 
     def align_variant(self, variant_dna):
         """
-        Use the local :py:class:`Aligner` to align the *variant_dna* to the 
+        Use the local :py:class:`~seqlib.aligner.Aligner` instance to align the *variant_dna* to the 
         wild type sequence. Returns a list of HGVS variant strings.
 
-        .. warning:: Using the :py:class:`Aligner` dramatically increases runtime.
+        .. warning:: Using the :py:class:`~seqlib.aligner.Aligner` dramatically increases runtime.
         """
         mutations = list()
         traceback = self.aligner.align(self.wt_dna, variant_dna)

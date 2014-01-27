@@ -1,0 +1,17 @@
+{
+  "name" : "Sample Library",
+  "timepoint" : 0,
+  "wild type" : {
+    "sequence" : "CGACGCAAGGAGTAG",
+    "coding" : true
+  },
+  "fastq" : {
+    "forward" : "/path/to/FASTQ/sample.fq"
+  },
+  "filters" : {
+    "min quality" : 20,
+    "avg quality" : 20,
+    "chastity" : true,
+    "max mutations" : 4
+  }
+}

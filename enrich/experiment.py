@@ -4,6 +4,18 @@ import selection
 import time
 
 
+def condition_cv_apply_fn(row, condition, use_scores):
+    """
+    ``pandas`` apply function for calculating the coefficient of variation 
+    for a variant's score (or ratio) in the condition.
+    """
+    bc_scores = barcode_data.ix[mapping.variants[row.name]]['score']
+    bc_scores = bc_scores[np.invert(np.isnan(bc_scores))]
+    cv = stats.variation(bc_scores)
+    return pd.Series({'scored.unique.barcodes' : len(bc_scores), \
+                      'barcode.cv' : cv})
+
+
 class Experiment(object):
     """
     Class for a coordinating multiple :py:class:`Selection` objects. The :py:class:`Selection` objects 
@@ -99,7 +111,8 @@ class Experiment(object):
                                 how="outer", rsuffix="%s" % s_label)
                             cnames += ["%s.%s" % (x, s_label) for x in ['score', 'r_sq']]
                 else:               # only two timepoints, so keep the ratio
-                    for dtype in self.df_dict:
+                    if first:
+                        for dtype in self.df_dict:
                             self.df_dict[dtype] = s.df_dict[dtype][['ratio.%d' % s.timepoints[1]]]
                             cnames = ["ratio.%s" % s_label]
                         first = False
@@ -113,9 +126,61 @@ class Experiment(object):
             self.df_dict[dtype].columns = cnames
 
 
+    def calc_variation(self):
+        """
+        Calculate the coefficient of variation for each variant's scores or ratios in each condition.
+        """
+        for dtype in self.df_dict:
+            for c in self.conditions:
+                if self.use_scores:
+                    c_columns = [x.startswith("score.%s") % c for x in self.df_dict[dtype].columns]
+                else:
+                    c_columns = [x.startswith("ratio.%s") % c for x in self.df_dict[dtype].columns]
+                c_values = self.df_dict[dtype][self.df_dict[dtype].columns[c_columns]]                
+                self.df_dict[dtype]['%s.cv' % c] = c_values.apply(stats.variation, axis=1)
+
+
     def filter_data(self):
         """
-        Filter everything.
+        Apply the filtering functions to the data, based on the filter 
+        options present in the configuration object. Filtering is performed 
+        using the appropriate apply function.
         """
-        pass
+        self.save_data(os.path.join(self.hdf_dir, "experiment_prefilter"), 
+                       clear=False)
+        # for each filter that's specified
+        # apply the filter
+        if self.filters['max barcode variation']:
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
+                        barcode_varation_filter, axis=1, 
+                        args=[self.filters['max barcode variation']])]
+            self.filter_stats['max barcode variation'] = \
+                    nrows - len(self.df_dict['variants'])
+        if self.filters['min count'] > 0:
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
+                        min_count_filter, axis=1, 
+                        args=[self.filters['min count']])]
+            self.filter_stats['min count'] = \
+                    nrows - len(self.df_dict['variants'])
+        if self.filters['min input count'] > 0:
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
+                        min_input_count_filter, axis=1, 
+                        args=[self.filters['min count']])]
+            self.filter_stats['min input count'] = \
+                    nrows - len(self.df_dict['variants'])
+        if self.filters['min rsquared'] > 0.0:
+            nrows = len(self.df_dict['variants'])
+            self.df_dict['variants'] = \
+                    self.df_dict['variants'][self.df_dict['variants'].apply(\
+                        min_rsq_filter, axis=1, 
+                        args=[self.filters['min rsquared']])]
+            self.filter_stats['min rsquared'] = \
+                    nrows - len(self.df_dict['variants'])
 
+        self.filter_stats['total'] = sum(self.filter_stats.values())

@@ -63,6 +63,18 @@ are assigned as replicates of experimental conditions.
 Creating an <a class="reference internal" href="#experiment.Experiment" title="experiment.Experiment"><tt class="xref py py-class docutils literal"><span class="pre">Experiment</span></tt></a> requires a valid <em>config</em> object, usually from a  
 <tt class="docutils literal"><span class="pre">.json</span></tt> configuration file.</p>
 <dl class="method">
+<dt id="experiment.Experiment.calc_selection_scores">
+<tt class="descname">calc_selection_scores</tt><big>(</big><big>)</big><a class="headerlink" href="#experiment.Experiment.calc_selection_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate scores for all <tt class="xref py py-class docutils literal"><span class="pre">Selection</span></tt> objects.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="experiment.Experiment.calc_variation">
+<tt class="descname">calc_variation</tt><big>(</big><big>)</big><a class="headerlink" href="#experiment.Experiment.calc_variation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the coefficient of variation for each variant&#8217;s scores or ratios in each condition.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="experiment.Experiment.enable_logging">
 <tt class="descname">enable_logging</tt><big>(</big><em>log</em><big>)</big><a class="headerlink" href="#experiment.Experiment.enable_logging" title="Permalink to this definition">¶</a></dt>
 <dd><p>Turns on log output for this object. Messages will be sent to the 
@@ -73,6 +85,33 @@ open file handle <em>log</em>.</p>
 </div>
 </dd></dl>
 
+<dl class="method">
+<dt id="experiment.Experiment.filter_data">
+<tt class="descname">filter_data</tt><big>(</big><big>)</big><a class="headerlink" href="#experiment.Experiment.filter_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the filtering functions to the data, based on the filter 
+options present in the configuration object. Filtering is performed 
+using the appropriate apply function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="experiment.Experiment.set_filters">
+<tt class="descname">set_filters</tt><big>(</big><em>config_filters</em>, <em>default_filters</em><big>)</big><a class="headerlink" href="#experiment.Experiment.set_filters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the filtering options using the values from the 
+<em>config_filters</em> dictionary and <em>default_filters</em> dictionary. Filtering 
+options include consistency of scores across replicates.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">To help prevent user error, <em>config_filters</em> must be a         subset of <em>default_filters</em>.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="experiment.condition_cv_apply_fn">
+<tt class="descclassname">experiment.</tt><tt class="descname">condition_cv_apply_fn</tt><big>(</big><em>row</em>, <em>condition</em>, <em>use_scores</em><big>)</big><a class="headerlink" href="#experiment.condition_cv_apply_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p><tt class="docutils literal"><span class="pre">pandas</span></tt> apply function for calculating the coefficient of variation 
+for a variant&#8217;s score (or ratio) in the condition.</p>
 </dd></dl>
 
 </div>

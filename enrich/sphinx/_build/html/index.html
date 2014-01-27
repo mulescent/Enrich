@@ -26,7 +26,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Enrich2 2.0 documentation" href="#" />
-    <link rel="next" title="Documentation for SeqLib Classes" href="seqlib.html" /> 
+    <link rel="next" title="seqlib — Abstract class for sequencing libraries" href="seqlib.html" /> 
   </head>
   <body>
     <div class="related">
@@ -39,7 +39,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="seqlib.html" title="Documentation for SeqLib Classes"
+          <a href="seqlib.html" title="seqlib — Abstract class for sequencing libraries"
              accesskey="N">next</a> |</li>
         <li><a href="#">Enrich2 2.0 documentation</a> &raquo;</li> 
       </ul>
@@ -52,26 +52,17 @@
             
   <div class="section" id="welcome-to-enrich2-s-documentation">
 <h1>Welcome to Enrich2&#8217;s documentation!<a class="headerlink" href="#welcome-to-enrich2-s-documentation" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><em>such document</em></li>
-<li><em>so read</em></li>
-<li><em>very inform</em></li>
-</ul>
+<p>Enrich is an analysis pipeline for using high throughput sequencing data to assess protein sequence-function relationships.</p>
 <img alt="_images/c09.jpg" src="_images/c09.jpg" style="width: 600px;" />
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="seqlib.html">Documentation for SeqLib Classes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="seqlib.html#module-seqlib.seqlib">SeqLib</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="seqlib.html#module-seqlib.barcode">BarcodeSeqLib</a></li>
-<li class="toctree-l3"><a class="reference internal" href="seqlib.html#module-seqlib.variant">VariantSeqLib</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="seqlib.html#module-seqlib.basic">BasicSeqLib</a></li>
-<li class="toctree-l4"><a class="reference internal" href="seqlib.html#module-seqlib.overlap">OverlapSeqLib</a></li>
-<li class="toctree-l4"><a class="reference internal" href="seqlib.html#module-seqlib.barcodevariant">BarcodeVariantSeqLib</a></li>
+<li class="toctree-l1"><a class="reference internal" href="seqlib.html"><tt class="docutils literal"><span class="pre">seqlib</span></tt> &#8212; Abstract class for sequencing libraries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="seqlib.html#seqlib-class"><tt class="docutils literal"><span class="pre">SeqLib</span></tt> class</a></li>
 </ul>
 </li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="basic.html"><tt class="docutils literal"><span class="pre">basic</span></tt> &#8212; Single-read sequencing library</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#basicseqlib-class"><tt class="docutils literal"><span class="pre">BasicSeqLib</span></tt> class</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="selection.html">Documentation for Selection</a><ul>
@@ -80,6 +71,25 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="experiment.html">Documentation for Experiment</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="experiment.html#module-experiment">Experiment</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="aligner.html"><tt class="docutils literal"><span class="pre">aligner</span></tt> &#8212; Needleman-Wunsch alignment for variants</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="aligner.html#aligner-class"><tt class="docutils literal"><span class="pre">Aligner</span></tt> class</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fqread.html"><tt class="docutils literal"><span class="pre">fqread</span></tt> &#8212; Manipulation of FASTQ records</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fqread.html#fqread-class"><tt class="docutils literal"><span class="pre">FQRead</span></tt> class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fqread.html#generator-functions">Generator functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fqread.html#miscellaneous-functions">Miscellaneous functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="config_examples.html">List of example configuration files</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="config_examples.html#basicseqlib"><tt class="docutils literal"><span class="pre">BasicSeqLib</span></tt></a></li>
+<li class="toctree-l2"><a class="reference internal" href="config_examples.html#overlapseqlib"><tt class="docutils literal"><span class="pre">OverlapSeqLib</span></tt></a></li>
+<li class="toctree-l2"><a class="reference internal" href="config_examples.html#barcodeseqlib"><tt class="docutils literal"><span class="pre">BarcodeSeqLib</span></tt></a></li>
+<li class="toctree-l2"><a class="reference internal" href="config_examples.html#barcodevariantseqlib"><tt class="docutils literal"><span class="pre">BarcodeVariantSeqLib</span></tt></a></li>
+<li class="toctree-l2"><a class="reference internal" href="config_examples.html#selection"><tt class="docutils literal"><span class="pre">Selection</span></tt></a></li>
+<li class="toctree-l2"><a class="reference internal" href="config_examples.html#experiment"><tt class="docutils literal"><span class="pre">Experiment</span></tt></a></li>
 </ul>
 </li>
 </ul>
@@ -110,7 +120,7 @@
 
   <h4>Next topic</h4>
   <p class="topless"><a href="seqlib.html"
-                        title="next chapter">Documentation for SeqLib Classes</a></p>
+                        title="next chapter"><tt class="docutils literal"><span class="pre">seqlib</span></tt> &#8212; Abstract class for sequencing libraries</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/index.txt"
@@ -143,7 +153,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="seqlib.html" title="Documentation for SeqLib Classes"
+          <a href="seqlib.html" title="seqlib — Abstract class for sequencing libraries"
              >next</a> |</li>
         <li><a href="#">Enrich2 2.0 documentation</a> &raquo;</li> 
       </ul>

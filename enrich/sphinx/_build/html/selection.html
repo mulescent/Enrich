@@ -25,7 +25,9 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Enrich2 2.0 documentation" href="index.html" /> 
+    <link rel="top" title="Enrich2 2.0 documentation" href="index.html" />
+    <link rel="next" title="Documentation for Experiment" href="experiment.html" />
+    <link rel="prev" title="Documentation for SeqLib Classes" href="seqlib.html" /> 
   </head>
   <body>
     <div class="related">
@@ -37,6 +39,12 @@
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
+        <li class="right" >
+          <a href="experiment.html" title="Documentation for Experiment"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="seqlib.html" title="Documentation for SeqLib Classes"
+             accesskey="P">previous</a> |</li>
         <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -49,6 +57,7 @@
   <div class="section" id="documentation-for-selection">
 <h1>Documentation for Selection<a class="headerlink" href="#documentation-for-selection" title="Permalink to this headline">¶</a></h1>
 <p>The Selection class organizes the data from <tt class="xref py py-class docutils literal"><span class="pre">SeqLib</span></tt> objects into a series of timepoints and calculalates enrichment scores.</p>
+<p>This is another change.</p>
 <div class="section" id="module-selection">
 <span id="selection"></span><h2>Selection<a class="headerlink" href="#module-selection" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
@@ -145,7 +154,7 @@ enrichments must be recalculated after filtering.</p>
 <dl class="method">
 <dt id="selection.Selection.load_data">
 <tt class="descname">load_data</tt><big>(</big><big>)</big><a class="headerlink" href="#selection.Selection.load_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the data from the <tt class="docutils literal"><span class="pre">.tsv</span></tt> files in the <tt class="docutils literal"><span class="pre">self.data_file</span></tt> 
+<dd><p>Load the data from the <tt class="docutils literal"><span class="pre">.tsv</span></tt> files in the <tt class="docutils literal"><span class="pre">self.df_file</span></tt> 
 dictionary.</p>
 <p>The optional <em>keys</em> parameter is a list of types of counts to be 
 loaded. By default, all counts are loaded.</p>
@@ -164,7 +173,7 @@ are nonspecific.</p>
 <dt id="selection.Selection.save_data">
 <tt class="descname">save_data</tt><big>(</big><em>directory</em>, <em>keys=None</em>, <em>clear=False</em><big>)</big><a class="headerlink" href="#selection.Selection.save_data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save the DataFrames as tab-separated files in <em>directory</em>. The 
-file names are stored in the <tt class="docutils literal"><span class="pre">self.data_file</span></tt> dictionary.</p>
+file names are stored in the <tt class="docutils literal"><span class="pre">self.df_file</span></tt> dictionary.</p>
 <p>The optional <em>keys</em> parameter is a list of types of counts to be 
 saved. By default, all counts are saved.</p>
 <p>If <em>clear</em> is <tt class="docutils literal"><span class="pre">True</span></tt>, saved data will be set to <tt class="docutils literal"><span class="pre">None</span></tt> after 
@@ -177,7 +186,8 @@ can be restored using <a class="reference internal" href="#selection.Selection.l
 <tt class="descname">set_filters</tt><big>(</big><em>config_filters</em>, <em>default_filters</em><big>)</big><a class="headerlink" href="#selection.Selection.set_filters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the filtering options using the values from the 
 <em>config_filters</em> dictionary and <em>default_filters</em> dictionary. 
-This method is used by the <tt class="docutils literal"><span class="pre">__init__</span></tt> method of <em>SeqLib</em> subclasses.</p>
+Filters include minimum read counts and barcode consistency 
+metrics (if all libraries are <tt class="xref py py-class docutils literal"><span class="pre">BarcodeVariantSeqLib</span></tt> objects).</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">To help prevent user error, <em>config_filters</em> must be a         subset of <em>default_filters</em>.</p>
@@ -257,6 +267,12 @@ has a change to stop at or before amino acid number <em>position</em>.</p>
 </li>
 </ul>
 
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="seqlib.html"
+                        title="previous chapter">Documentation for SeqLib Classes</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="experiment.html"
+                        title="next chapter">Documentation for Experiment</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/selection.txt"
@@ -288,6 +304,12 @@ has a change to stop at or before amino acid number <em>position</em>.</p>
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
+        <li class="right" >
+          <a href="experiment.html" title="Documentation for Experiment"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="seqlib.html" title="Documentation for SeqLib Classes"
+             >previous</a> |</li>
         <li><a href="index.html">Enrich2 2.0 documentation</a> &raquo;</li> 
       </ul>
     </div>

@@ -1,12 +1,24 @@
 from variant import VariantSeqLib
 from enrich_error import EnrichError
-from fastq_util import read_fastq, check_fastq
+from fqread import read_fastq, check_fastq
 
 
 class BasicSeqLib(VariantSeqLib):
     """
-    Class for count data from sequencing libraries with a single read for each variant.
-    Creating a :py:class:`BasicSeqLib` requires a valid *config* .
+    Class for count data from sequencing libraries with a single read for 
+    each variant. Creating a :py:class:`BasicSeqLib` requires a valid 
+    *config* object, usually from a ``.json`` configuration file.
+
+    Example config file for a :py:class:`BasicSeqLib`:
+
+    .. literalinclude:: config_examples/basic.json
+
+    :download:`Download this JSON file <config_examples/basic.json>`
+
+    The ``"fastq"`` config entry can contain one read file, with the key 
+    ``"forward"`` or ``"reverse"``. If the read file is ``"reverse"``, all 
+    reads will be reverse-complemented before being compared to the wild type 
+    sequence.
     """
     def __init__(self, config):
         VariantSeqLib.__init__(self, config)

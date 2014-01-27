@@ -1,47 +1,12 @@
-################################
-Documentation for SeqLib Classes
-################################
+:py:mod:`~seqlib.seqlib` --- Abstract class for sequencing libraries
+====================================================================
 
-SeqLib classes contain data for individual sequencing libraries and their associated count data.
+.. py:module:: seqlib.seqlib
+	:synopsis: Abstract class for sequencing libraries.
 
+The :py:mod:`~seqlib.seqlib` module contains the class definition for the abstract class :py:class:`~seqlib.seqlib.SeqLib`, the base class for all sequencing library data in the `Enrich2 <index.html>`_ project.
 
-**************************
-SeqLib
-**************************
-.. automodule:: seqlib.seqlib
+:py:class:`~seqlib.seqlib.SeqLib` class
+---------------------------------------
+.. autoclass:: seqlib.seqlib.SeqLib
 	:members:
-
-==========================
-BarcodeSeqLib
-==========================
-.. automodule:: seqlib.barcode
-	:members:
-	:show-inheritance:
-	
-==========================
-VariantSeqLib
-==========================
-.. automodule:: seqlib.variant
-	:members:
-	:show-inheritance:
-
----------------------------
-BasicSeqLib
----------------------------
-.. automodule:: seqlib.basic
-	:members:
-	:show-inheritance:
-
----------------------------
-OverlapSeqLib
----------------------------
-.. automodule:: seqlib.overlap
-	:members:
-	:show-inheritance:
-
----------------------------
-BarcodeVariantSeqLib
----------------------------
-.. automodule:: seqlib.barcodevariant
-	:members:
-	:show-inheritance:

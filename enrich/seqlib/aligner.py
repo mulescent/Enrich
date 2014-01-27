@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 
-
+# This matrix variable is referenced by line number in the class docstring.
 _simple_similarity = {
         'A' : {'A' : 1, 'C' : -1, 'G' : -1, 'T' : -1, 'N' : 0, 'X' : 0},
         'C' : {'A' : -1, 'C' : 1, 'G' : -1, 'T' : -1, 'N' : 0, 'X' : 0},
@@ -13,9 +13,22 @@ _simple_similarity = {
 }
 
 
+
 class Aligner(object):
     """
-    Class for performing Needleman-Wunsch local alignment.
+    Class for performing `Needleman-Wunsch <http://en.wikipedia.org/wiki/
+    Needleman%E2%80%93Wunsch_algorithm>`_ local alignment.
+
+    The :py:class:`~seqlib.aligner.Aligner` requires a scoring matrix when 
+    created. By default, the following matrix is used:
+
+    .. literalinclude:: ../seqlib/aligner.py
+        :lines: 5-13
+
+    The format is a nested dictionary, with a special ``'gap'`` entry for the 
+    gap penalty (this value is used for both gap opening and gap extension). 
+    The ``'X'`` nucleotide is a special case for unresolvable mismatches in 
+    :py:class:`~seqlib.overlap.OverlapSeqLib` variant data.
     """
     _MAT = 1    # match
     _INS = 2    # insertion (with respect to wild type)
@@ -33,7 +46,7 @@ class Aligner(object):
 
         self.similarity = similarity
         if 'gap' not in self.similarity:
-            self.similarity['gap'] = 0
+            raise Exception("No gap penalty")
 
         self.matrix = None
         self.seq1 = None
@@ -42,8 +55,14 @@ class Aligner(object):
 
     def align(self, seq1, seq2):
         """
-        Aligns the two sequences, *seq1* and *seq2*. Returns a list of tuples 
-        describing the differences between the sequences.
+        Aligns the two sequences, *seq1* and *seq2* and returns a list of 
+        tuples describing the differences between the sequences.
+
+        The tuple format is ``(i, j, type, length)``, where ``i`` and ``j`` 
+        are the positions in *seq1* and *seq2*, respectively, and type is one 
+        of ``"match"``, ``"mismatch"``, ``"insertion"``, or ``"deletion"``. 
+        For indels, the ``length`` value is the number of bases inserted or 
+        deleted with respect to *seq1* starting at ``i``.
         """
         self.matrix = np.ndarray(shape=(len(seq1) + 1, len(seq2) + 1), \
                 dtype=np.dtype([('score', np.int), ('trace', np.byte)]))
@@ -58,7 +77,8 @@ class Aligner(object):
         for i in xrange(1, len(seq1) + 1):
             for j in xrange(1, len(seq2) + 1):
                 match = (self.matrix[i - 1, j - 1]['score'] + \
-                            self.similarity[seq1[i - 1]][seq2[j - 1]], Aligner._MAT)
+                            self.similarity[seq1[i - 1]][seq2[j - 1]], 
+                            Aligner._MAT)
                 delete = (self.matrix[i - 1, j]['score'] + \
                             self.similarity['gap'], Aligner._DEL)
                 insert = (self.matrix[i, j - 1]['score'] + \
@@ -88,8 +108,7 @@ class Aligner(object):
             elif self.matrix[i, j]['trace'] == Aligner._END:
                 pass
             else:
-                # error
-                pass
+                raise Exception("Serious alignment error")
         traceback.reverse()
 
         # combine indels
@@ -101,7 +120,7 @@ class Aligner(object):
                     if t[2] == indel[2]:
                         indel[3] += t[3]
                     else:
-                        print("Check gap penalty")
+                        raise Exception("Check gap penalty")
                 else:
                     indel = list(t)
             else:
@@ -113,5 +132,3 @@ class Aligner(object):
             traceback_combined.append(tuple(indel))
 
         return traceback_combined
-
-
