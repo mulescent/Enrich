@@ -1,0 +1,17 @@
+{
+  "name" : "Sample Barcode Library",
+  "timepoint" : 0,
+  "fastq" : {
+    "forward" : "/path/to/FASTQ/sample_reads.fq",
+    "start" : 1,
+    "length" : 16
+  },
+  "filters" : {
+    "min quality" : 20,
+    "avg quality" : 20,
+    "chastity" : true
+  },
+  "barcodes" : {
+    "min count" : 5
+  }
+}

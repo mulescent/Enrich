@@ -1,0 +1,25 @@
+{
+  "name" : "Sample Overlap Library",
+  "timepoint" : 0,
+  "wild type" : {
+    "sequence" : "CGACGCAAGGAGTAG",
+    "coding" : true
+  },
+  "fastq" : {
+    "forward" : "/path/to/FASTQ/sample_forward_reads.fq",
+    "reverse" : "/path/to/FASTQ/sample_reverse_reads.fq"
+  },
+  "filters" : {
+    "min quality" : 20,
+    "avg quality" : 20,
+    "chastity" : true,
+    "max mutations" : 4
+  },
+  "overlap" : {
+    "forward start" : 2,
+    "reverse start" : 3,
+    "length" : 10,
+    "overlap only" : false,
+    "max mismatches" : 5
+  }
+}

@@ -1,12 +1,12 @@
 {
-  "name" : "Sample Library",
+  "name" : "Sample Basic Library",
   "timepoint" : 0,
   "wild type" : {
     "sequence" : "CGACGCAAGGAGTAG",
     "coding" : true
   },
   "fastq" : {
-    "forward" : "/path/to/FASTQ/sample.fq"
+    "forward" : "/path/to/FASTQ/sample_reads.fq"
   },
   "filters" : {
     "min quality" : 20,

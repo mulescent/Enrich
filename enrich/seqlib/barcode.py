@@ -11,19 +11,39 @@ from sys import stdout, stderr
 
 class BarcodeSeqLib(SeqLib):
     """
-    Class for count data from barcoded sequencing libraries. Designed to be used for 
-    barcode-only quantification or as a parent class. Creating a :py:class:`BarcodeSeqLib` requires a valid *config* object with an 
-    ``'barcodes'`` entry.
+    Class for count data from barcoded sequencing libraries. Designed for 
+    barcode-only quantification or as a parent class for 
+    :py:class:`~seqlib.barcodevariant.BarcodeVariantSeqLib`. Creating a 
+    :py:class:`~seqlib.barcode.BarcodeSeqLib` requires a valid *config* 
+    object with a ``"barcodes"`` entry (this entry can be empty).
+
+    Example config file for a :py:class:`~seqlib.barcode.BarcodeSeqLib`:
+
+    .. literalinclude:: config_examples/barcode.json
+
+    :download:`Download this JSON file <config_examples/barcode.json>`
+
+    The ``"fastq"`` config entry can contain one read file, with the key 
+    ``"forward"`` or ``"reverse"``. If the read file is ``"reverse"``, all 
+    barcodes will be reverse-complemented before being counted. The 
+    ``"fastq"`` entry can contain optional values ``"start"`` and 
+    ``"length"``, which will be used to trim the barcodes before counting. 
+    Bases are counted starting at 1.
+
+    The ``"min count"`` entry in ``"barcodes"`` is used to filter out 
+    low-abundance barcodes (likely the result of technical artifacts). 
+    Barcodes that occur less than ``"min count"`` times are removed from the 
+    dataset. Setting the ``"min count"`` option appropriately can 
+    dramatically improve execution time and reduce memory usage.
+
+    .. note:: The :py:class:`~seqlib.barcodevariant.BarcodeVariantSeqLib` \
+    class implements an alternative method for removing artifactual barcodes \
+    that may be more appropriate for users of that module.
     """
     def __init__(self, config, parent=True):
         if parent:
             SeqLib.__init__(self, config)
         try:
-            if 'map file' in config['barcodes']:
-                self.barcode_map = BarcodeMap(config['barcodes']['map file'])
-            else:
-                self.barcode_map = None
-
             if 'forward' in config['fastq'] and 'reverse' in config['fastq']:
                 raise EnrichError("Multiple FASTQ files specified", self.name)
             elif 'forward' in config['fastq']:
@@ -44,10 +64,14 @@ class BarcodeSeqLib(SeqLib):
             else:
                 self.bc_length = 2147483647 # longer than any read... for now
 
+            if 'min count' in config['barcodes']:
+                self.min_count = config['barcodes']['min count']
+            else:
+                self.min_count = 0
+
             self.set_filters(config['filters'], {'min quality' : 0,
                                       'avg quality' : 0,
-                                      'chastity' : False,
-                                      'max mutations' : len(self.wt_dna)})
+                                      'chastity' : False})
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, self.name)
 
@@ -61,9 +85,9 @@ class BarcodeSeqLib(SeqLib):
 
     def count(self):
         """
-        Reads the forward or reverse FASTQ file (reverse reads are reverse-complemented),
-        performs quality-based filtering, and 
-        counts the barcodes.
+        Reads the forward or reverse FASTQ file (reverse reads are 
+        reverse-complemented), performs quality-based filtering, and counts 
+        the barcodes.
         """
         self.counts['barcodes'] = dict()
 
@@ -110,4 +134,7 @@ class BarcodeSeqLib(SeqLib):
         if len(self.counts['barcodes']) == 0:
             raise EnrichError("Failed to count barcodes", self.name)
         self.counts['barcodes'].columns = ['count']
+        self.counts['barcodes'] = \
+                self.counts['barcodes'][self.counts['barcodes']['count'] \
+                    > self.min_count]
 
