@@ -1,3 +1,5 @@
+.. include:: global.rst
+
 :py:mod:`~seqlib.seqlib` --- Abstract class for sequencing libraries
 ====================================================================
 

@@ -1,3 +1,5 @@
+.. include:: global.rst
+
 :py:mod:`~seqlib.aligner` --- Needleman-Wunsch alignment for variants
 =====================================================================
 

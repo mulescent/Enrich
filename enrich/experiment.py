@@ -47,8 +47,11 @@ class Experiment(object):
             raise EnrichError("Missing required config value %s" % key, 
                               self.name)
 
-        for dtype in self.conditions.values()[0].df_dict:
-            if all(dtype in x.df_dict for x in self.conditions.values()):
+        all_selections = list()
+        for key in self.conditions:
+            all_selections.extend(self.conditions[key])
+        for dtype in all_selections[0].df_dict:
+            if all(dtype in x.df_dict for x in all_selections):
                 self.df_dict[dtype] = True
         if len(self.df_dict.keys()) == 0:
             raise EnrichError("No enrichment data present across all selections", 

@@ -1,3 +1,5 @@
+.. include:: global.rst
+
 List of example configuration files
 ===================================
 

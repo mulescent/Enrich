@@ -1,3 +1,5 @@
+.. include:: global.rst
+
 :py:mod:`~seqlib.basic` --- Single-read sequencing library
 ==========================================================
 

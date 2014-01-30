@@ -1,3 +1,5 @@
+.. include:: global.rst
+
 Documentation for Enrich2
 =========================
 Enrich is an analysis pipeline for using high throughput sequencing data to assess protein sequence-function relationships.
@@ -18,6 +20,12 @@ Contents:
     fqread
     config_examples
 
+.. toctree::
+   :hidden:
+
+   global
+
+   
 Indices and tables
 ==================
 

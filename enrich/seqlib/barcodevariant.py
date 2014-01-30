@@ -4,27 +4,30 @@ from variant import VariantSeqLib
 from barcode import BarcodeSeqLib
 from seqlib import SeqLib
 from enrich_error import EnrichError
-from fastq_util import read_fastq, check_fastq
+from fqread import read_fastq, check_fastq
 import pandas as pd
-
-
-# debugging
-from sys import stdout, stderr
 
 
 class BarcodeMap(dict):
     """
-    Dictionary-type class for storing the relationship between barcodes and variants. 
-    Requires the path to a *mapfile*, containing lines in the format 'barcode<tab>variant' 
-    for each barcode expected in the library. Stores a second dictionary, variants, storing 
-    a list of barcodes assigned to a given variant.
+    Dictionary-derived class for storing the relationship between barcodes 
+    and variants. Requires the path to a *mapfile*, containing lines in the 
+    format ``'barcode<tab>variant'`` for each barcode expected in the library. 
+    Also creates a second dictionary, ``BarcodeMap.variants``, storing a list 
+    of barcodes assigned to a given variant.
+
+    Barcodes must only contain the characters ``ACGT`` and variants must only 
+    contain the characters ``ACGTN`` (lowercase characters are also accepted). 
+
+    The dictionaries are created when the object is initialized.
     """
     def __init__(self, mapfile):
         self.name = "mapfile_%s" % mapfile
         try:
             handle = open(mapfile, "U")
         except IOError:
-            raise EnrichError("Could not open barcode map file '%s'" % mapfile, self.name)
+            raise EnrichError("Could not open barcode map file '%s'" \
+                    % mapfile, self.name)
 
         self.filename = mapfile
         for line in handle:
@@ -35,10 +38,11 @@ class BarcodeMap(dict):
             try:
                 barcode, variant = line.strip().split()
             except ValueError:
-                raise EnrichError("Unexpected barcode-variant line format", self.name)
+                raise EnrichError("Unexpected barcode-variant line format", 
+                                  self.name)
 
             if not re.match("^[ACGTacgt]+$", barcode):
-                raise EnrichError("BarcoBde DNA sequence contains unexpected "
+                raise EnrichError("Barcode DNA sequence contains unexpected "
                                   "characters", self.name)
             if not re.match("^[ACGTNacgtn]+$", variant):
                 raise EnrichError("Variant DNA sequence contains unexpected "
@@ -75,6 +79,7 @@ class BarcodeMap(dict):
                 sorted(self.variants.items(), key=lambda x:x[1]):
             print(variant, ", ".join(barcodes), sep="\t", file=handle)
         handle.close()
+
 
 
 class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
@@ -138,14 +143,18 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
                 if bc not in self.barcode_map.variants[mutations]:
                     self.barcode_map.variants[mutations].append(bc)
 
-        print("counted %d unique variants from %d unique barcodes (%s)" % (len(self.counts['variants'].keys()), len(self.counts['barcodes'].index), self.name), file=stderr)
-
         self.counts['variants'] = \
                 pd.DataFrame.from_dict(self.counts['variants'], 
                                        orient="index", dtype="int32")
         if len(self.counts['variants']) == 0:
             raise EnrichError("Failed to count variants", self.name)
         self.counts['variants'].columns = ['count']
+
+        if self.log is not None:
+            print("Counted %d unique variants from %d unique barcodes (%s)" \
+                    % (len(self.counts['variants'].index), 
+                        len(self.counts['barcodes'].index), self.name), 
+                        file=self.log)
 
 
     def orphan_barcodes(self, mincount=0):

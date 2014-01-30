@@ -1,0 +1,22 @@
+{
+  "name" : "Sample Barcode Library",
+  "timepoint" : 0,
+  "wild type" : {
+    "sequence" : "CGACGCAAGGAGTAG",
+    "coding" : true
+  },
+  "fastq" : {
+    "forward" : "/path/to/FASTQ/sample_reads.fq",
+    "start" : 1,
+    "length" : 16
+  },
+  "filters" : {
+    "min quality" : 20,
+    "avg quality" : 20,
+    "chastity" : true,
+    "max mutations" : 4
+  },
+  "barcodes" : {
+    "map file" : "/path/to/map/file/barcode_map.txt"
+  }
+}

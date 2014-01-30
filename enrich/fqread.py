@@ -27,9 +27,8 @@ dna_trans = string.maketrans("actgACTG", "tgacTGAC")
 
 class FQRead(object):
     """
-    Stores a single record from a 
-    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file. Quality values 
-    are stored internally as a list of integer `Phred quality scores \
+    Stores a single record from a FASTQ_ file. Quality values are stored 
+    internally as a list of integer `Phred quality scores \
     <http://www.phrap.com/phred/#qualityscores>`_. The *qbase* parameter is 
     the ASCII value that correponds to Phred score of 0. The *sequence* and 
     *quality* strings must be the same length. 
@@ -56,9 +55,8 @@ class FQRead(object):
 
     def __str__(self):
         """
-        Reformat as a four-line 
-        `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ record. This 
-        method converts the integer quality values back into a string.
+        Reformat as a four-line FASTQ_ record. This method converts the 
+        integer quality values back into a string.
         """
         return '\n'.join([self.header, self.sequence, self.header2, 
                 array('b', [x + self.qbase for x in self.quality]).tostring()])
@@ -100,10 +98,10 @@ class FQRead(object):
     def header_information(self, pattern=header_pattern):
         """header_information(pattern=header_pattern)
 
-        Parses the first `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ 
-        header (@ header) and returns a dictionary. Dictionary keys are the 
-        named groups in the regular expression *pattern*. Unnamed matches are 
-        ignored. Integer values are converted from strings to integers.
+        Parses the first FASTQ_ header (@ header) and returns a dictionary. 
+        Dictionary keys are the named groups in the regular expression 
+        *pattern*. Unnamed matches are ignored. Integer values are converted 
+        from strings to integers.
 
         The default pattern matches a header in the format::
 
@@ -154,8 +152,7 @@ class FQRead(object):
 
 def check_fastq(fname):
     """
-    Check that *fname* exists and has a valid 
-    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file extension. 
+    Check that *fname* exists and has a valid FASTQ_ file extension. 
     Returns ``None`` if the file exists and the extension is recognized 
     (``.fastq`` or ``.fq``), otherwise raise an ``IOError``.
     """
@@ -172,13 +169,11 @@ def check_fastq(fname):
 
 def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE, qbase=33):
     """
-    Generator function for reading from 
-    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file *fname*. Yields 
-    an :py:class:`~fqread.FQRead` object for each 
-    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ record in the file. 
-    The *filter_function* must operate on an :py:class:`~fqread.FQRead` 
-    object and return ``True`` or ``False``. If the result is ``False``, the 
-    record will be skipped silently.
+    Generator function for reading from FASTQ_ file *fname*. Yields an 
+    :py:class:`~fqread.FQRead` object for each FASTQ_ record in the file. The 
+    *filter_function* must operate on an :py:class:`~fqread.FQRead` object 
+    and return ``True`` or ``False``. If the result is ``False``, the record 
+    will be skipped silently.
 
     .. note:: To read multiple files in parallel (such as index or \
         forward/reverse reads), use :py:func:`read_fastq_multi` instead.
@@ -224,19 +219,16 @@ def read_fastq(fname, filter_function=None, buffer_size=BUFFER_SIZE, qbase=33):
 def read_fastq_multi(fnames, filter_function=None, buffer_size=BUFFER_SIZE,
                      match_lengths=True, qbase=33):
     """
-    Generator function for reading from multiple 
-    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ files in parallel. 
-    The argument *fnames* is an iterable of 
-    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ file names. Yields a 
+    Generator function for reading from multiple FASTQ_ files in parallel. 
+    The argument *fnames* is an iterable of FASTQ_ file names. Yields a 
     tuple of :py:class:`~fqread.FQRead` objects, one for each file in 
     *fnames*. The *filter_function* must operate on an :py:class:`FQRead` 
     object and return ``True`` or ``False``. If the result is ``False`` for 
     any :py:class:`FQRead` in the tuple, the entire tuple will be skipped.
 
     If *match_lengths* is ``True``, the generator will yield ``None`` if the 
-    files do not contain the same number of 
-    `FASTQ <http://en.wikipedia.org/wiki/FASTQ_format>`_ records. Otherwise, 
-    it will silently ignore partial records.
+    files do not contain the same number of FASTQ_ records. Otherwise, it 
+    will silently ignore partial records.
     """
     fq_generators = list()
     for f in fnames:
