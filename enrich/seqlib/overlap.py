@@ -2,7 +2,7 @@ from __future__ import print_function
 from sys import stderr
 from variant import VariantSeqLib
 from enrich_error import EnrichError
-from fastq_util import read_fastq_multi, check_fastq, FQRead
+from fqread import read_fastq_multi, check_fastq, FQRead
 import pandas as pd
 
 

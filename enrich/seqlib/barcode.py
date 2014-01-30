@@ -2,7 +2,7 @@ from __future__ import print_function
 import re
 from seqlib import SeqLib
 from enrich_error import EnrichError
-from fastq_util import read_fastq, check_fastq
+from fqread import read_fastq, check_fastq
 import pandas as pd
 
 # debugging
