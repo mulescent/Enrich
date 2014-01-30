@@ -8,9 +8,43 @@ import pandas as pd
 
 class OverlapSeqLib(VariantSeqLib):
     """
-    Class for count data from sequencing libraries with overlapping paired-end reads for each variant.
-    Creating a :py:class:`OverlapSeqLib` requires a valid *config* object with an 
-    ``'overlap'`` entry.
+    Class for count data from sequencing libraries with overlapping paired-end 
+    reads for each variant. Creating a 
+    :py:class:`~seqlib.overlap.OverlapSeqLib` requires a valid *config* object 
+    with an ``'overlap'`` entry.
+
+    Example config file for a :py:class:`OverlapSeqLib`:
+
+    .. literalinclude:: config_examples/overlap.json
+
+    :download:`Download this JSON file <config_examples/overlap.json>`
+
+    The ``"fastq"`` config entry must contain two read files, with the keys 
+    ``"forward"`` and ``"reverse"``. Information about how to combine these 
+    reads is in the ``"overlap"`` config entry.
+
+    The ``"overlap"`` config entry contains the following keys:
+
+    * ``"forward start"`` --- position in the forward read where the \
+        overlapping region begins
+    * ``"reverse start"`` --- position in the reverse read where the \
+        overlapping region begins (before being reverse-complemented)
+    * ``"length"`` --- number of bases in the overlapping region
+    * ``"max mismatches"`` --- maximum number of mismatches tolerated in the \
+        overlapping region before discarding the read
+    * ``"overlap only"`` --- whether to trim the merged read to contain only \
+        the overlapping region (optional, defaults to ``False``)
+
+    Here is a schematic of the case in the above JSON example::
+
+        forward ---> 1   
+                     CGACGCAAGGA
+                       |||||||||
+                       ACTCCTTGCGTCG
+                                   1 <--- reverse
+
+    Note that the merged sequence is identical to the wild type sequence given 
+    in the JSON file.
     """
     def __init__(self, config):
         VariantSeqLib.__init__(self, config)
@@ -25,14 +59,15 @@ class OverlapSeqLib(VariantSeqLib):
             self.max_overlap_mismatches = int(config['overlap']
                                                     ['max mismatches'])
 
-            if 'fuser failure' in config['filters']:
-                raise EnrichError("'fuser failure' is not user-configurable", self.name)
+            if 'merge failure' in config['filters']:
+                raise EnrichError("'merge failure' is not user-configurable", 
+                                  self.name)
             self.set_filters(config['filters'], {'remove unresolvable' : False, 
                                       'min quality' : 0,
                                       'avg quality' : 0,
                                       'max mutations' : len(self.wt_dna),
                                       'chastity' : False,
-                                      'fuser failure' : True})
+                                      'merge failure' : True})
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, 
                               self.name)
@@ -46,28 +81,29 @@ class OverlapSeqLib(VariantSeqLib):
             raise EnrichError("FASTQ file error: %s" % fqerr, self.name)
 
 
-    def fuse_reads(self, fwd, rev):
+    def merge_reads(self, fwd, rev):
         """
-        Combines the *fwd* and *rev* :py:class:`FQRead` objects into a single 
-        :py:class:`FQRead` with the same header information as *fwd*. Mismatches 
-        are resolved by taking the highest quality base. If discrepant bases have 
-        the same quality value, this position is unresolvable and an ``'X'`` is 
-        inserted. Quality values in the resulting :py:class:`FQRead` are the 
-        maximum quality for the given base at that position. Returns ``None`` if 
-        the maximum number of mismatches in the overlap region is exceded.
+        Combines the *fwd* and *rev* :py:class:`~fqread.FQRead` objects into a 
+        single :py:class:`~fqread.FQRead` with the same header information as 
+        *fwd*. Mismatches are resolved by taking the highest quality base. If 
+        discrepant bases have the same quality value, this position is 
+        unresolvable and an ``'X'`` is inserted. Quality values in the 
+        resulting :py:class:`~fqread.FQRead` are the maximum quality for the 
+        given base at that position. Returns ``None`` if the maximum number of 
+        mismatches in the overlap region is exceded.
         """
-        rev.reverse()
+        rev.revcomp()
 
         rev_extra_start = len(rev) - self.rev_start + 1
         fwd_end = self.fwd_start + self.overlap_length - 1
-        fused = FQRead(header=fwd.header, 
+        merge = FQRead(header=fwd.header, 
                        sequence="A",
                        header2=fwd.header2,
                        quality="#",
                        qbase=fwd.qbase)
-        fused.sequence = list(fwd.sequence[:fwd_end] + \
+        merge.sequence = list(fwd.sequence[:fwd_end] + \
                                      rev.sequence[rev_extra_start:])
-        fused.quality = fwd.quality[:fwd_end] + \
+        merge.quality = fwd.quality[:fwd_end] + \
                                      rev.quality[rev_extra_start:]
 
         mismatches = 0
@@ -77,30 +113,29 @@ class OverlapSeqLib(VariantSeqLib):
             if fwd.sequence[a] == rev.sequence[b]:
                 # take the highest quality value
                 if rev.quality[b] > fwd.quality[a]:
-                    fused.quality[a] = rev.quality[b]
+                    merge.quality[a] = rev.quality[b]
             else:
                 mismatches += 1
                 if fwd.quality[a] == rev.quality[b]:
-                    fused.sequence[a] = 'X' # unresolvable
+                    merge.sequence[a] = 'X' # unresolvable
                 elif rev.quality[b] > fwd.quality[a]:
-                    fused.sequence[a] = rev.sequence[b]
-                    fused.quality[a] = rev.quality[b]
+                    merge.sequence[a] = rev.sequence[b]
+                    merge.quality[a] = rev.quality[b]
                 else:
                     pass # overlap region already same as fwd
         if mismatches > self.max_overlap_mismatches:
-            return None # fusing failed
+            return None # merge failed
 
-        fused.sequence = "".join(fused.sequence)
+        merge.sequence = "".join(merge.sequence)
         if self.trim:
-            fused.trim_length(self.fwd_start, self.overlap_length)
-        return fused
+            merge.trim_length(self.fwd_start, self.overlap_length)
+        return merge
 
 
     def count(self):
         """
-        Reads the forward and reverse reads, merges them, performs quality-based filtering, 
-        and counts the 
-        variants.
+        Reads the forward and reverse reads, merges them, performs 
+        quality-based filtering, and counts the variants.
         """
         self.counts['variants'] = dict()
 
@@ -127,36 +162,36 @@ class OverlapSeqLib(VariantSeqLib):
                     self.filter_stats['chastity'] += 1
                     self.filter_stats['total'] += 1
                     continue
-            fused = self.fuse_reads(fwd, rev)
-            if fused is None: # fuser failed
-                self.filter_stats['fuser failure'] += 1
+            merge = self.merge_reads(fwd, rev)
+            if merge is None: # merge failed
+                self.filter_stats['merge failure'] += 1
                 self.filter_stats['total'] += 1
-                filter_flags['fuser failure'] = True
+                filter_flags['merge failure'] = True
                 if self.verbose:
                     self.report_filtered_read(self.log, fwd, filter_flags)
                     self.report_filtered_read(self.log, rev, filter_flags)
             else:
                 if self.filters['remove unresolvable']:
-                    if 'X' in fused.sequence:
+                    if 'X' in merge.sequence:
                         self.filter_stats['remove unresolvable'] += 1
                         filter_flags['remove unresolvable'] = True
                 if self.filters['min quality'] > 0:
-                    if fused.min_quality() < self.filters['min quality']:
+                    if merge.min_quality() < self.filters['min quality']:
                         self.filter_stats['min quality'] += 1
                         filter_flags['min quality'] = True
                 if self.filters['avg quality'] > 0:
-                    if fused.mean_quality() < self.filters['avg quality']:
+                    if merge.mean_quality() < self.filters['avg quality']:
                         self.filter_stats['avg quality'] += 1
                         filter_flags['avg quality'] = True
                 if not any(filter_flags.values()): # passed quality filtering
-                    mutations = self.count_variant(fused.sequence)
-                    if mutations is None: # fused read has too many mutations
+                    mutations = self.count_variant(merge.sequence)
+                    if mutations is None: # merge read has too many mutations
                         self.filter_stats['max mutations'] += 1
                         filter_flags['max mutations'] = True
                 if any(filter_flags.values()):
                     self.filter_stats['total'] += 1
                     if self.verbose:
-                        self.report_filtered_read(self.log, fused, filter_flags)
+                        self.report_filtered_read(self.log, merge, filter_flags)
 
         self.counts['variants'] = \
                 pd.DataFrame.from_dict(self.counts['variants'], 

@@ -16,9 +16,9 @@
     "max mutations" : 4
   },
   "overlap" : {
-    "forward start" : 2,
-    "reverse start" : 3,
-    "length" : 10,
+    "forward start" : 3,
+    "reverse start" : 5,
+    "length" : 9,
     "overlap only" : false,
     "max mismatches" : 5
   }

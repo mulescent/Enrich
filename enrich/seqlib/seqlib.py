@@ -31,7 +31,7 @@ class SeqLib(object):
             'max mutations' : "excess mutations",
             'chastity' : "not chaste",
             'remove overlap indels' : "indel in read overlap",
-            'fuser failure' : "unable to fuse reads"
+            'merge failure' : "unable to merge reads"
     }
 
 

@@ -43,8 +43,6 @@ class FQRead(object):
         elif header[0] != '@' or header2[0] != '+':
             raise ValueError('improperly formatted FASTQ record')
         else:
-            if len(sequence) < len(quality):
-                quality = quality[:len(sequence)]
             self.header = header
             self.sequence = sequence
             self.header2 = header2
@@ -86,7 +84,7 @@ class FQRead(object):
         self.trim(start=start, end=start + length - 1)
 
 
-    def reverse(self):
+    def revcomp(self):
         """
         Reverse-complement the sequence in place. Also reverses the array of 
         quality values.

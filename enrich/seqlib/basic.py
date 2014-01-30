@@ -27,10 +27,10 @@ class BasicSeqLib(VariantSeqLib):
                 raise EnrichError("Multiple FASTQ files specified", self.name)
             elif 'forward' in config['fastq']:
                 self.reads = config['fastq']['forward']
-                self.reverse_reads = False
+                self.revcomp_reads = False
             elif 'reverse' in config['fastq']:
                 self.reads = config['fastq']['reverse']
-                self.reverse_reads = True
+                self.revcomp_reads = True
             else:
                 raise KeyError("'forward' or 'reverse'")
 
@@ -61,8 +61,8 @@ class BasicSeqLib(VariantSeqLib):
             filter_flags[key] = False
 
         for fq in read_fastq(self.reads):
-            if self.reverse_reads:
-                fq.reverse()
+            if self.revcomp_reads:
+                fq.revcomp()
 
             for key in filter_flags:
                 filter_flags[key] = False
@@ -82,7 +82,7 @@ class BasicSeqLib(VariantSeqLib):
                     filter_flags['avg quality'] = True
             if not any(filter_flags.values()): # passed quality filtering
                 mutations = self.count_variant(fq.sequence)
-                if mutations is None: # fused read has too many mutations
+                if mutations is None: # read has too many mutations
                     self.filter_stats['max mutations'] += 1
                     filter_flags['max mutations'] = True
             if any(filter_flags.values()):

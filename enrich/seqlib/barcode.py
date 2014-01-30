@@ -48,10 +48,10 @@ class BarcodeSeqLib(SeqLib):
                 raise EnrichError("Multiple FASTQ files specified", self.name)
             elif 'forward' in config['fastq']:
                 self.reads = config['fastq']['forward']
-                self.reverse_reads = False
+                self.revcomp_reads = False
             elif 'reverse' in config['fastq']:
                 self.reads = config['fastq']['reverse']
-                self.reverse_reads = True
+                self.revcomp_reads = True
             else:
                 raise KeyError("'forward' or 'reverse'")
 
@@ -99,8 +99,8 @@ class BarcodeSeqLib(SeqLib):
         # count all the barcodes
         for fq in read_fastq(self.reads):
             fq.trim_length(self.bc_length, start=self.bc_start)
-            if self.reverse_reads:
-                fq.reverse()
+            if self.revcomp_reads:
+                fq.revcomp()
 
             for key in filter_flags:
                 filter_flags[key] = False
