@@ -1,12 +1,14 @@
-############################
-Documentation for Experiment
-############################
+.. include:: global.rst
 
-The Experiment class organizes the data from :py:class:`Selection` objects into experimental conditions and replicate analyses.
+:py:mod:`~experiment` --- Class for comparing multiple selections
+=================================================================
 
+.. py:module:: experiment
+	:synopsis: Class for comparing multiple selections.
 
-**************************
-Experiment
-**************************
-.. automodule:: experiment
+The :py:mod:`~experiment` module contains the class definition for the :py:class:`~experiment.Experiment` class, used for comparing multiple :py:class:`~selection.Selection` objects. Typically, one :py:class:`~experiment.Experiment` will be created to perform all analysis for a single run of the `Enrich2 <index.html>`_ pipeline.
+
+:py:class:`~experiment.Experiment` class
+----------------------------------------
+.. autoclass:: experiment.Experiment
 	:members:

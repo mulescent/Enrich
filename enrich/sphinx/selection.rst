@@ -1,13 +1,14 @@
-###########################
-Documentation for Selection
-###########################
+.. include:: global.rst
 
-The Selection class organizes the data from :py:class:`SeqLib` objects into a series of timepoints and calculalates enrichment scores.
+:py:mod:`~selection` --- Class for analyzing a selection timeseries
+===================================================================
 
-This is another change.
+.. py:module:: selection
+	:synopsis: Class for analyzing a selection timeseries.
 
-**************************
-Selection
-**************************
-.. automodule:: selection
+The :py:mod:`~selection` module contains the class definition for the :py:class:`~selection.Selection` class, used for analyzing multiple timepoints in a selection experiment. Each timepoint consists of one or more `Seqlib family objects <seqlib_overview.html>`_.
+
+:py:class:`~selection.Selection` class
+--------------------------------------
+.. autoclass:: selection.Selection
 	:members:

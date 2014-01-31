@@ -14,9 +14,6 @@ import numpy as np
 from collections import Counter
 
 
-from sys import stdout, stderr
-
-
 def nonsense_ns_carryover_apply_fn(row, position):
     """
     ``pandas`` apply function for determining which rows contribute counts 

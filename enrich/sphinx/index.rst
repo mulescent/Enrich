@@ -16,8 +16,7 @@ Contents:
     seqlib_overview
     selection
     experiment
-    aligner
-    fqread
+    other_overview
     config_examples
 
 .. toctree::
@@ -25,7 +24,7 @@ Contents:
 
    global
 
-   
+
 Indices and tables
 ==================
 
