@@ -12,3 +12,25 @@ The :py:mod:`~selection` module contains the class definition for the :py:class:
 --------------------------------------
 .. autoclass:: selection.Selection
 	:members:
+
+:py:mod:`~selection` apply functions
+-------------------------------------
+.. autofunction:: nonsense_ns_carryover_apply_fn
+
+.. autofunction:: enrichment_apply_fn
+
+Filtering apply functions
+*************************
+.. autofunction:: min_count_filter
+
+.. autofunction:: min_input_count_filter
+
+.. autofunction:: min_rsq_filter
+
+:py:class:`~seqlib.barcodevariant.BarcodeVariant`-specific apply functions
+**************************************************************************
+.. autofunction:: barcode_variation_apply_fn
+
+.. autofunction:: barcode_count_apply_fn
+
+.. autofunction:: barcode_varation_filter

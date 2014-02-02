@@ -84,8 +84,20 @@ class BarcodeMap(dict):
 
 class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
     """
-    Class for counting variant data from barcoded sequencing libraries. Creating a :py:class:`BarcodeVariantSeqLib` requires a valid *config* object with an 
-    ``'barcodes'`` entry and information about the wild type sequence.
+    Class for counting variant data from barcoded sequencing libraries. 
+    Creating a :py:class:`BarcodeVariantSeqLib` requires a valid *config* 
+    object with an ``'barcodes'`` entry and information about the wild type 
+    sequence.
+
+    Example config file for a :py:class:`~seqlib.barcodevariant.BarcodeVariantSeqLib`:
+
+    .. literalinclude:: config_examples/barcodevariant.json
+
+    :download:`Download this JSON file <config_examples/barcodevariant.json>`
+
+    The ``barcode_map`` keyword argument can be used to pass an existing 
+    :py:class:`~seqlib.barcodevariant.BarcodeMap`, but only if the 
+    ``"map file"`` entry is absent from *config*.
     """
     def __init__(self, config, barcode_map=None):
         VariantSeqLib.__init__(self, config)
@@ -101,7 +113,8 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
                                       'chastity' : False,
                                       'max mutations' : len(self.wt_dna)})
         except KeyError as key:
-            raise EnrichError("Missing required config value %s" % key, self.name)
+            raise EnrichError("Missing required config value %s" % key, 
+                              self.name)
 
         if self.barcode_map is None: # not in local config
             if barcode_map is None:  # not provided on object creation

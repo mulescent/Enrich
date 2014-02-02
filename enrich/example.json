@@ -1,53 +1,84 @@
 {
-  "name" : "ww experiment",
+  "name" : "Sample Experiment",
   "conditions" : [
     {
       "label" : "normal",
       "control" : false,
       "selections" : [
         {
-          "name" : "ww example",
-          "filters" : {},
+          "name" : "Sample Experimental Condition",
+          "filters" : {
+            "min count" : 10,
+            "min input count" : 50,
+            "min rsquared" : 0.2,
+            "max barcode variation" : 3.0
+          },
+          "carryover correction" : "nonsense",
           "libraries" : [
             {
-              "name" : "example input",
+              "name" : "Sample Input",
               "timepoint" : 0,
               "wild type" : {
-                "sequence" : "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+                "sequence" : "CGACGCAAGGAGTAG",
                 "coding" : true
               },
               "fastq" : {
-                "forward" : "/Users/afrubin/Documents/Enrich2_example/unsel_example_F_index_filtered.fq",
-                "reverse" : "/Users/afrubin/Documents/Enrich2_example/unsel_example_R_index_filtered.fq"
+                "forward" : "/path/to/FASTQ/condition1/input_reads.fq",
+                "start" : 1,
+                "length" : 16
               },
               "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
               },
-              "overlap" : {
-                "forward start" : 15,
-                "reverse start" : 15,
-                "length" : 74,
-                "overlap only" : false,
-                "max mismatches" : 5
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
               }
             },
             {
-              "name" : "example selected",
-              "timepoint" : 1,
+              "name" : "Sample 24hr",
+              "timepoint" : 24,
               "wild type" : {
-                "sequence" : "GACGTTCCACTGCCGGCTGGTTGGGAAATGGCTAAAACTAGTTCTGGTCAGCGTTACTTCCTGAACCACATCGACCAGACCACCACGTGGCAGGACCCGCGT",
+                "sequence" : "CGACGCAAGGAGTAG",
                 "coding" : true
               },
               "fastq" : {
-                "forward" : "/Users/afrubin/Documents/Enrich2_example/sel_example_F_index_filtered.fq",
-                "reverse" : "/Users/afrubin/Documents/Enrich2_example/sel_example_R_index_filtered.fq"
+                "forward" : "/path/to/FASTQ/condition1/t24_reads.fq",
+                "start" : 1,
+                "length" : 16
               },
-              "filters" : {},
-              "overlap" : {
-                "forward start" : 15,
-                "reverse start" : 15,
-                "length" : 74,
-                "overlap only" : false,
-                "max mismatches" : 5
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
+              }
+            },
+            {
+              "name" : "Sample 48hr",
+              "timepoint" : 48,
+              "wild type" : {
+                "sequence" : "CGACGCAAGGAGTAG",
+                "coding" : true
+              },
+              "fastq" : {
+                "forward" : "/path/to/FASTQ/condition1/t48_reads.fq",
+                "start" : 1,
+                "length" : 16
+              },
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
               }
             }
           ]

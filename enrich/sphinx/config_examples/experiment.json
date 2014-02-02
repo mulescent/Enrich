@@ -1,0 +1,173 @@
+{
+  "name" : "Sample Experiment",
+  "conditions" : [
+    {
+      "label" : "normal",
+      "control" : false,
+      "selections" : [
+        {
+          "name" : "Sample Experimental Condition",
+          "filters" : {
+            "min count" : 10,
+            "min input count" : 50,
+            "min rsquared" : 0.2,
+            "max barcode variation" : 3.0
+          },
+          "carryover correction" : "nonsense",
+          "libraries" : [
+            {
+              "name" : "Sample Input",
+              "timepoint" : 0,
+              "wild type" : {
+                "sequence" : "CGACGCAAGGAGTAG",
+                "coding" : true
+              },
+              "fastq" : {
+                "forward" : "/path/to/FASTQ/condition1/input_reads.fq",
+                "start" : 1,
+                "length" : 16
+              },
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
+              }
+            },
+            {
+              "name" : "Sample 24hr",
+              "timepoint" : 24,
+              "wild type" : {
+                "sequence" : "CGACGCAAGGAGTAG",
+                "coding" : true
+              },
+              "fastq" : {
+                "forward" : "/path/to/FASTQ/condition1/t24_reads.fq",
+                "start" : 1,
+                "length" : 16
+              },
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
+              }
+            },
+            {
+              "name" : "Sample 48hr",
+              "timepoint" : 48,
+              "wild type" : {
+                "sequence" : "CGACGCAAGGAGTAG",
+                "coding" : true
+              },
+              "fastq" : {
+                "forward" : "/path/to/FASTQ/condition1/t48_reads.fq",
+                "start" : 1,
+                "length" : 16
+              },
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label" : "drift control",
+      "control" : true,
+      "selections" : [
+        {
+          "name" : "Sample Drift Control",
+          "filters" : {
+            "min count" : 10,
+            "min input count" : 50,
+            "min rsquared" : 0.2,
+            "max barcode variation" : 3.0
+          },
+          "carryover correction" : "nonsense",
+          "libraries" : [
+            {
+              "name" : "Sample Control Input",
+              "timepoint" : 0,
+              "wild type" : {
+                "sequence" : "CGACGCAAGGAGTAG",
+                "coding" : true
+              },
+              "fastq" : {
+                "forward" : "/path/to/FASTQ/control/input_reads.fq",
+                "start" : 1,
+                "length" : 16
+              },
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
+              }
+            },
+            {
+              "name" : "Sample Control 24hr",
+              "timepoint" : 24,
+              "wild type" : {
+                "sequence" : "CGACGCAAGGAGTAG",
+                "coding" : true
+              },
+              "fastq" : {
+                "forward" : "/path/to/FASTQ/control/t24_reads.fq",
+                "start" : 1,
+                "length" : 16
+              },
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
+              }
+            },
+            {
+              "name" : "Sample Control 48hr",
+              "timepoint" : 48,
+              "wild type" : {
+                "sequence" : "CGACGCAAGGAGTAG",
+                "coding" : true
+              },
+              "fastq" : {
+                "forward" : "/path/to/FASTQ/control/t48_reads.fq",
+                "start" : 1,
+                "length" : 16
+              },
+              "filters" : {
+                "min quality" : 20,
+                "avg quality" : 20,
+                "chastity" : true,
+                "max mutations" : 4
+              },
+              "barcodes" : {
+                "map file" : "/path/to/map/file/barcode_map.txt"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

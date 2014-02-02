@@ -12,3 +12,7 @@ The :py:mod:`~experiment` module contains the class definition for the :py:class
 ----------------------------------------
 .. autoclass:: experiment.Experiment
 	:members:
+
+:py:mod:`~experiment` apply functions
+-------------------------------------
+.. autofunction:: condition_cv_apply_fn

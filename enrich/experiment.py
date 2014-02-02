@@ -6,8 +6,9 @@ import time
 
 def condition_cv_apply_fn(row, condition, use_scores):
     """
-    ``pandas`` apply function for calculating the coefficient of variation 
-    for a variant's score (or ratio) in the condition.
+    :py:meth:`pandas.DataFrame.apply` function for calculating the 
+    coefficient of variation for a variant's score (or ratio) in the 
+    condition.
     """
     bc_scores = barcode_data.ix[mapping.variants[row.name]]['score']
     bc_scores = bc_scores[np.invert(np.isnan(bc_scores))]
@@ -18,10 +19,18 @@ def condition_cv_apply_fn(row, condition, use_scores):
 
 class Experiment(object):
     """
-    Class for a coordinating multiple :py:class:`Selection` objects. The :py:class:`Selection` objects 
-    are assigned as replicates of experimental conditions. 
-    Creating an :py:class:`Experiment` requires a valid *config* object, usually from a  
-    ``.json`` configuration file.
+    Class for a coordinating multiple :py:class:`~.selection.Selection` 
+    objects. The :py:class:`~.selection.Selection` objects are assigned as 
+    replicates of experimental conditions. Creating an 
+    :py:class:`~experiment.Experiment` requires a valid *config* object, 
+    usually from a ``.json`` configuration file.
+
+    Example config file for a :py:class:`~experiment.Experiment`:
+
+    .. literalinclude:: config_examples/experiment.json
+
+    :download:`Download this JSON file <config_examples/experiment.json>`
+
     """
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
@@ -93,7 +102,7 @@ class Experiment(object):
 
     def calc_selection_scores(self):
         """
-        Calculate scores for all :py:class:`Selection` objects.
+        Calculate scores for all :py:class:`~selection.Selection` objects.
         """
         first = True
         for c in self.conditions:

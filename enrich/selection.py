@@ -16,7 +16,7 @@ from collections import Counter
 
 def nonsense_ns_carryover_apply_fn(row, position):
     """
-    ``pandas`` apply function for determining which rows contribute counts 
+    :py:meth:`pandas.DataFrame.apply` function for determining which rows contribute counts 
     to nonspecific carryover calculations. Returns ``True`` if the variant  
     has a change to stop at or before amino acid number *position*.
     """
@@ -32,7 +32,7 @@ def nonsense_ns_carryover_apply_fn(row, position):
 
 def barcode_variation_apply_fn(row, barcode_data, mapping):
     """
-    ``pandas`` apply function for calculating the coefficient of variation 
+    :py:meth:`pandas.DataFrame.apply` function for calculating the coefficient of variation 
     for a variant's barcodes.
     """
     bc_scores = barcode_data.ix[mapping.variants[row.name]]['score']
@@ -44,7 +44,7 @@ def barcode_variation_apply_fn(row, barcode_data, mapping):
 
 def barcode_count_apply_fn(row, mapping):
     """
-    ``pandas`` apply function for counting the number of unique barcodes for a
+    :py:meth:`pandas.DataFrame.apply` function for counting the number of unique barcodes for a
     variant.
     """
     return len(mapping.variants[row.name])
@@ -96,7 +96,7 @@ def min_rsq_filter(row, cutoff):
 
 def enrichment_apply_fn(row, timepoints):
     """
-    ``pandas`` apply function for calculating enrichment scores and 
+    :py:meth:`pandas.DataFrame.apply` apply function for calculating enrichment scores and 
     r-squared values.
     """
     if math.isnan(row[0]):
@@ -127,6 +127,13 @@ class Selection(object):
     Class for a single selection experiment, consisting of multiple timepoints. 
     This class coordinates :py:class:`SeqLib` objects. Creating a :py:class:`Selection` requires a valid *config* object, usually from a  
     ``.json`` configuration file.
+
+    Example config file for a :py:class:`~selection.Selection`:
+
+    .. literalinclude:: config_examples/selection.json
+
+    :download:`Download this JSON file <config_examples/selection.json>`
+
     """
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
@@ -286,9 +293,9 @@ class Selection(object):
 
     def count_timepoints(self):
         """
-        Combine :py:class:`SeqLib` objects into individual timepoints and 
+        Combine :py:class:`~seqlib.seqlib.SeqLib` objects into individual timepoints and 
         tabulate counts for each timepoint. Counts are stored in the local
-        ``pandas`` DataFrame. To tabulate counts for individual mutations 
+        :py:class:`pandas.DataFrame`. To tabulate counts for individual mutations 
         (not variants), see :py:meth:`count_mutations`.
         """
         # calculate counts for each SeqLib
@@ -304,8 +311,8 @@ class Selection(object):
 
     def calc_counts(self, dtype):
         """
-        Tabulate counts for each timepoint and create the DataFrame indicated by 
-        *dtype* ('variant' or 'barcode'). All :py:class:`SeqLib` objects need to 
+        Tabulate counts for each timepoint and create the :py:class:`pandas.DataFrame` indicated by 
+        *dtype* ('variant' or 'barcode'). All :py:class:`~seqlib.seqlib.SeqLib` objects need to 
         be counted before calling this method.
         """
         # combine all libraries for a given timepoint
@@ -331,9 +338,9 @@ class Selection(object):
 
     def count_mutations(self):
         """
-        Creates and populates DataFrames for individual mutations. This method 
+        Creates and populates :py:class:`pandas.DataFrame` objects for individual mutations. This method 
         should be called after all filtering has been completed. The new 
-        DataFrames have dtype 'mutations_nt' and 'mutations_aa' (only if the 
+        :py:class:`pandas.DataFrame` objects have dtype 'mutations_nt' and 'mutations_aa' (only if the 
         data set is coding).
         """
         # needs to happen all the filtering/exclusion of variants
@@ -366,7 +373,7 @@ class Selection(object):
 
     def calc_frequencies(self, dtype):
         """
-        Calculate frequencies for each element in the DataFrame indicated by 
+        Calculate frequencies for each element in the :py:class:`pandas.DataFrame` indicated by 
         *dtype* ('variant' or 'barcode').
         """
         for tp in self.timepoints:
@@ -377,7 +384,7 @@ class Selection(object):
 
     def calc_ratios(self, dtype):
         """
-        Calculate ratios for each element in the DataFrame indicated by 
+        Calculate ratios for each element in the :py:class:`pandas.DataFrame` indicated by 
         *dtype* ('variant' or 'barcode'). Assumes frequencies have been 
         calculated by :py:meth:`calc_frequencies`.
         """
@@ -392,7 +399,7 @@ class Selection(object):
 
     def calc_enrichments(self, dtype):
         """
-        Calculate enrichment scores and r-squared values for each element in the DataFrame indicated by 
+        Calculate enrichment scores and r-squared values for each element in the :py:class:`pandas.DataFrame` indicated by 
         *dtype* ('variant' or 'barcode'). Assumes ratios have been 
         calculated by :py:meth:`calc_ratios`. Calculations performed using 
         :py:func:`enrichment_apply_fn`.
@@ -424,7 +431,7 @@ class Selection(object):
 
     def nonspecific_carryover(self, ns_apply_fn, **kwargs):
         """
-        Correct the counts in the 'variants' DataFrame for nonspecific carryover. 
+        Correct the counts in the 'variants' :py:class:`pandas.DataFrame` for nonspecific carryover. 
         Nonspecific counts are defined by *ns_apply_fn* and its *kwargs*, which 
         takes a row as an argument and returns ``True`` if the row's counts 
         are nonspecific.
@@ -445,7 +452,7 @@ class Selection(object):
 
     def save_data(self, directory, keys=None, clear=False):
         """
-        Save the DataFrames as tab-separated files in *directory*. The 
+        Save the :py:class:`pandas.DataFrame` objects as tab-separated files in *directory*. The 
         file names are stored in the ``self.df_file`` dictionary.
 
         The optional *keys* parameter is a list of types of counts to be 
