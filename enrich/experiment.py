@@ -66,8 +66,8 @@ class Experiment(object):
             raise EnrichError("No enrichment data present across all selections", 
                               self.name)
 
-        for cnd in self.conditions:
-            if len(cnd.timepoints) == 2:
+        for key in self.conditions:
+            if len(self.conditions[key].timepoints) == 2:
                 self.use_scores = False
 
 
