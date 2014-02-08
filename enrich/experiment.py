@@ -20,8 +20,7 @@ def condition_cv_apply_fn(row, condition, use_scores):
 class Experiment(object):
     """
     Class for a coordinating multiple :py:class:`~.selection.Selection` 
-    objects. The :py:class:`~.selection.Selection` objects are assigned as 
-    replicates of experimental conditions. Creating an 
+    objects. Creating an 
     :py:class:`~experiment.Experiment` requires a valid *config* object, 
     usually from a ``.json`` configuration file.
 
@@ -29,8 +28,21 @@ class Experiment(object):
 
     .. literalinclude:: config_examples/experiment.json
 
+
     :download:`Download this JSON file <config_examples/experiment.json>`
 
+    Each experimental ``condition`` contains one or more 
+    :py:class:`~.selection.Selection` elements. Multiple 
+    :py:class:`~.selection.Selection` objects assigned to the same 
+    condition are treated as independent replicates. One ``condition``
+    may be specified as a ``control``, and used for control-based score
+    corrections.
+
+    .. todo:: Control-based corrections are not yet implemented.
+
+    If any :py:class:`~.selection.Selection` has only two timepoints, the 
+    results will be based on ratios of input and selected timepoints 
+    instead of scores.
     """
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
