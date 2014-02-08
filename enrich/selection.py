@@ -124,9 +124,10 @@ def enrichment_apply_fn(row, timepoints):
 
 class Selection(object):
     """
-    Class for a single selection experiment, consisting of multiple timepoints. 
-    This class coordinates :py:class:`SeqLib` objects. Creating a :py:class:`Selection` requires a valid *config* object, usually from a  
-    ``.json`` configuration file.
+    Class for a single selection experiment, consisting of multiple 
+    timepoints. This class coordinates :py:class:`SeqLib` objects. Creating a 
+    :py:class:`~selection.Selection` requires a valid *config* object, 
+    usually from a ``.json`` configuration file.
 
     Example config file for a :py:class:`~selection.Selection`:
 
@@ -134,6 +135,26 @@ class Selection(object):
 
     :download:`Download this JSON file <config_examples/selection.json>`
 
+    The ``"libraries"`` config entry is a list of all sequencing library 
+    configuration entries. Counts for :py:class:`~seqlib.seqlib.SeqLib` 
+    objects from the same ``timepoint`` are combined. Scores are calculated 
+    based on the resulting time series. 
+
+    All filters listed in the example config are optional. Unlike 
+    :py:class:`~seqlib.seqlib.SeqLib` objects, filtered data are not written 
+    to a log file. Instead, the data are written to a file before filtering 
+    and stored for future comparison. 
+
+    .. note:: ``"max barcode variation"`` filtering is only applicable if \
+    all sequencing data has both barcode and variant data (*i.e.* are \
+    :py:class:`~seqlib.barcodevariant.BarcodeVariantSeqLib` objects).
+
+    If the optional ``"carryover correction"`` is specified, scores will be 
+    corrected based on an estimate of nonspecific carryover (retention of 
+    non-functional variants during the selection). Currently, this is  
+    implemented for the ``"nonsense"`` option, as described by 
+    `Araya and Fowler`_. However, additional methods can be added using this 
+    as an example.
     """
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__

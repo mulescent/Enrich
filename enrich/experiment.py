@@ -67,7 +67,7 @@ class Experiment(object):
                               self.name)
 
         for key in self.conditions:
-            if len(self.conditions[key].timepoints) == 2:
+            if any(len(x.timepoints) == 2 for x in self.conditions[key]):
                 self.use_scores = False
 
 
