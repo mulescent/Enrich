@@ -3,7 +3,9 @@ from enrich_error import EnrichError
 from scipy import stats
 from seqlib.basic import BasicSeqLib
 from seqlib.barcodevariant import BarcodeVariantSeqLib, BarcodeMap
+from seqlib.barcode import BarcodeSeqLib
 from seqlib.overlap import OverlapSeqLib
+from config_check import seqlib_type
 import os
 import re
 import math
@@ -16,9 +18,10 @@ from collections import Counter
 
 def nonsense_ns_carryover_apply_fn(row, position):
     """
-    :py:meth:`pandas.DataFrame.apply` function for determining which rows contribute counts 
-    to nonspecific carryover calculations. Returns ``True`` if the variant  
-    has a change to stop at or before amino acid number *position*.
+    :py:meth:`pandas.DataFrame.apply` function for determining which rows 
+    contribute counts to nonspecific carryover calculations. Returns ``True`` 
+    if the variant has a change to stop at or before amino acid number 
+    *position*.
     """
     m = re.search("p\.[A-Z][a-z][a-z](\d+)Ter", row.name)
     if m is not None:
@@ -32,8 +35,8 @@ def nonsense_ns_carryover_apply_fn(row, position):
 
 def barcode_variation_apply_fn(row, barcode_data, mapping):
     """
-    :py:meth:`pandas.DataFrame.apply` function for calculating the coefficient of variation 
-    for a variant's barcodes.
+    :py:meth:`pandas.DataFrame.apply` function for calculating the coefficient 
+    of variation for a variant's barcodes.
     """
     bc_scores = barcode_data.ix[mapping.variants[row.name]]['score']
     bc_scores = bc_scores[np.invert(np.isnan(bc_scores))]
@@ -44,8 +47,8 @@ def barcode_variation_apply_fn(row, barcode_data, mapping):
 
 def barcode_count_apply_fn(row, mapping):
     """
-    :py:meth:`pandas.DataFrame.apply` function for counting the number of unique barcodes for a
-    variant.
+    :py:meth:`pandas.DataFrame.apply` function for counting the number of 
+    unique barcodes for a variant.
     """
     return len(mapping.variants[row.name])
 
@@ -96,8 +99,8 @@ def min_rsq_filter(row, cutoff):
 
 def enrichment_apply_fn(row, timepoints):
     """
-    :py:meth:`pandas.DataFrame.apply` apply function for calculating enrichment scores and 
-    r-squared values.
+    :py:meth:`pandas.DataFrame.apply` apply function for calculating 
+    enrichment scores and r-squared values.
     """
     if math.isnan(row[0]):
         # not present in input library
@@ -122,12 +125,12 @@ def enrichment_apply_fn(row, timepoints):
     return pd.Series({'score' : score, 'r_sq' : r_sq})
 
 
-class Selection(object):
+class Selection(DataContainer):
     """
     Class for a single selection experiment, consisting of multiple 
-    timepoints. This class coordinates :py:class:`SeqLib` objects. Creating a 
-    :py:class:`~selection.Selection` requires a valid *config* object, 
-    usually from a ``.json`` configuration file.
+    timepoints. This class coordinates :py:class:`~seqlib.seqlib.SeqLib` 
+    objects. Creating a :py:class:`~selection.Selection` requires a valid 
+    *config* object, usually from a ``.json`` configuration file.
 
     Example config file for a :py:class:`~selection.Selection`:
 
@@ -157,40 +160,29 @@ class Selection(object):
     as an example.
     """
     def __init__(self, config):
-        self.name = "Unnamed" + self.__class__.__name__
+        DataContainer.__init__(self, config)
         self.libraries = dict()
-        self.df_dict = dict()
-        self.df_file = dict()
         self.timepoints = list()
-        self.verbose = False
-        self.log = None
-        self.filters = None
-        self.filter_stats = None
-
-        # PARAMETERIZE
-        self.hdf_dir = "."
 
         try:
-            self.name = config['name']
             if 'barcodes' in config:
                 if 'map file' in config['barcodes']:
                     self.barcode_map = BarcodeMap(config['barcodes']
                                                         ['map file'])
                 else:
                     self.barcode_map = None
+            else:
+                self.barcode_map = None
 
             libnames = list()
             for lib in config['libraries']:
-                if 'barcodes' in lib:
-                    if 'wild type' in lib:
-                        new = BarcodeVariantSeqLib(lib, 
-                                    barcode_map=self.barcode_map)
-                    else:
-                        new = BarcodeSeqLib(lib)
-                elif 'overlap' in lib:
-                    new = OverlapSeqLib(lib)
+                libtype = seqlib_type(lib)
+                if libtype is None:
+                    raise EnrichError("Unrecognized SeqLib config", self.name)
+                elif libtype == "BarcodeVariantSeqLib":
+                    new = BarcodeVariantSeqLib(lib, barcode_map=self.barcode_map)
                 else:
-                    new = BasicSeqLib(lib)
+                    new = globals()[libtype](lib)
 
                 if new.timepoint not in self.libraries:
                     self.libraries[new.timepoint] = list()
@@ -282,36 +274,6 @@ class Selection(object):
                 lib.enable_logging(log)
 
 
-    def set_filters(self, config_filters, default_filters):
-        """
-        Sets the filtering options using the values from the 
-        *config_filters* dictionary and *default_filters* dictionary. 
-        Filters include minimum read counts and barcode consistency 
-        metrics (if all libraries are :py:class:`BarcodeVariantSeqLib` objects).
-
-        .. note:: To help prevent user error, *config_filters* must be a \
-        subset of *default_filters*.
-        """
-        self.filters = default_filters
-
-        for key in self.filters:
-            if key in config_filters:
-                self.filters[key] = config_filters[key]
-
-        unused = list()
-        for key in config_filters:
-            if key not in self.filters:
-                unused.append(key)
-        if len(unused) > 0:
-            raise EnrichError("Unused filter parameters (%s)" % \
-                              ', '.join(unused), self.name)
-
-        self.filter_stats = dict()
-        for key in self.filters:
-            self.filter_stats[key] = 0
-        self.filter_stats['total'] = 0
-
-
     def count_timepoints(self):
         """
         Combine :py:class:`~seqlib.seqlib.SeqLib` objects into individual timepoints and 
@@ -322,12 +284,12 @@ class Selection(object):
         # calculate counts for each SeqLib
         for tp in self.timepoints:
             for lib in self.libraries[tp]:
-                lib.count()
+                lib.calculate()
         for dtype in self.df_dict:
             self.calc_counts(dtype)
         for tp in self.timepoints:
             for lib in self.libraries[tp]:
-                lib.save_counts(self.hdf_dir, clear=True)
+                lib.save_data(self.save_dir, clear=True)
 
 
     def calc_counts(self, dtype):
@@ -376,7 +338,7 @@ class Selection(object):
                 self.calc_enrichments(dtype)
 
 
-    def calc_all(self):
+    def calculate(self):
         """
         Wrapper method to calculate counts, frequencies, ratios, and enrichment scores 
         for all data in the :py:class:`Selection`.
@@ -511,7 +473,7 @@ class Selection(object):
             keys = self.df_file.keys()
         else:
             if not all(key in self.df_file.keys() for key in keys):
-                raise EnrichError("Cannot load unsaved counts", self.name)
+                raise EnrichError("Cannot load unsaved data", self.name)
         for key in keys:
             self.counts[key] = pd.from_csv(self.df_file[key], sep="\t")
 
@@ -523,7 +485,7 @@ class Selection(object):
         using the appropriate apply function. Frequencies, ratios, and 
         enrichments must be recalculated after filtering.
         """
-        self.save_data(os.path.join(self.hdf_dir, "selection_prefilter"), 
+        self.save_data(os.path.join(self.save_dir, "selection_prefilter"), 
                        clear=False)
         # for each filter that's specified
         # apply the filter

@@ -83,7 +83,7 @@ class BarcodeSeqLib(SeqLib):
         self.counts['barcodes'] = None
 
 
-    def count(self):
+    def calculate(self):
         """
         Reads the forward or reverse FASTQ file (reverse reads are 
         reverse-complemented), performs quality-based filtering, and counts 
