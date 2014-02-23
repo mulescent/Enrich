@@ -47,6 +47,7 @@ class Experiment(object):
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
         self.verbose = False
+        self.output_directory = None
         self.log = None
         self.conditions = dict()
         self.control = None
@@ -55,6 +56,7 @@ class Experiment(object):
 
         try:
             self.name = config['name']
+            self.output_directory = config['output directory']
             for cnd in config['conditions']:
                 if not cnd['label'].isalnum():
                     raise EnrichError("Alphanumeric label required for condition '%s'" % cnd['label'], self.name)
@@ -122,6 +124,7 @@ class Experiment(object):
             for s in self.conditions[c]:
                 s_label = "%s.%d" % (c, s_id)
                 s_id += 1
+                print("Counting variants for selection %s" % s.name)
                 s.calc_all()
                 if self.use_scores: # keep the score and r_sq columns
                     if first:
@@ -145,7 +148,7 @@ class Experiment(object):
                             self.df_dict[dtype] = self.df_dict[dtype].join(s.df_dict[dtype][['ratio.%d' % s.timepoints[1]]],
                                 how="outer", rsuffix="%s" % s_label)
                             cnames.append("ratio.%s" % s_label)
-                s.save_data(clear=True)
+                s.save_data(self.output_directory, clear=True)
         for dtype in self.df_dict:
             self.df_dict[dtype].columns = cnames
 
