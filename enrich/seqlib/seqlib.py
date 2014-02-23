@@ -2,10 +2,11 @@ from __future__ import print_function
 import time
 import pandas as pd
 from enrich_error import EnrichError
+from datacontainer import DataContainer
 import os.path
 
 
-class SeqLib(object):
+class SeqLib(DataContainer):
     """
     Abstract class for handling count data from a single sequencing library.
     Creating a :py:class:`seqlib.seqlib.SeqLib` requires a valid *config* 
@@ -13,35 +14,11 @@ class SeqLib(object):
 
     .. note:: Example configuration files can be found in the documentation \
     for derived classes.
-
-    Log file messages for filtered reads are defined here in the 
-    ``_filter_messages`` dictionary. New read filtering options must have an 
-    associated log file output message added to the dictionary.
-
-    .. literalinclude:: ../seqlib/seqlib.py
-        :lines: 27-35
     """
-
-    # Note: the following block is referenced by line number in seqlib.rst
-    # When adding new messages, update the documentation line numbers also!
-    _filter_messages = {
-            'remove unresolvable' : "unresolvable mismatch",
-            'min quality' : "single-base quality",
-            'avg quality' : "average quality",
-            'max mutations' : "excess mutations",
-            'chastity' : "not chaste",
-            'remove overlap indels' : "indel in read overlap",
-            'merge failure' : "unable to merge reads"
-    }
-
-
     def __init__(self, config):
-        self.name = "Unnamed" + self.__class__.__name__
-        self.verbose = False
-        self.log = None
+        DataContainer.__init__(self, config)
 
         try:
-            self.name = config['name']
             self.timepoint = int(config['timepoint'])
             if 'align variants' in config:
                 if config['align variants']:
@@ -64,57 +41,12 @@ class SeqLib(object):
         self.filter_stats = None    # dictionary
 
 
-    def enable_logging(self, log):
-        """
-        Turns on log output for this object. Messages will be sent to the 
-        open file handle *log*. 
-
-        .. note:: One log file is usually shared by all objects in the \
-        analysis.
-        """
-        self.verbose = True
-        self.log = log
-        try:
-            print("# Logging started for '%s': %s" % 
-                        (self.name, time.asctime()), file=self.log)
-        except (IOError, AttributeError):
-            raise EnrichError("Could not write to log file", self.name)
-
-
-    def count(self):
+    def calculate(self):
         """
         This method defines how the data is counted. It must be implemented 
         by each subclass.
         """
         raise NotImplementedError("must be implemented by subclass")
-
-
-    def set_filters(self, config_filters, default_filters):
-        """
-        Sets the filtering options using the values from the *config_filters* 
-        dictionary and *default_filters* dictionary. 
-
-        .. note:: To help prevent user error, *config_filters* must be a \
-        subset of *default_filters*.
-        """
-        self.filters = default_filters
-
-        for key in self.filters:
-            if key in config_filters:
-                self.filters[key] = int(config_filters[key])
-
-        unused = list()
-        for key in config_filters:
-            if key not in self.filters:
-                unused.append(key)
-        if len(unused) > 0:
-            raise EnrichError("Unused filter parameters (%s)" % 
-                              ', '.join(unused), self.name)
-
-        self.filter_stats = dict()
-        for key in self.filters:
-            self.filter_stats[key] = 0
-        self.filter_stats['total'] = 0
 
 
     def report_filtered_read(self, handle, fq, filter_flags):
@@ -123,33 +55,16 @@ class SeqLib(object):
         (usually a log file). The dictionary *filter_flags* contains ``True`` 
         values for each filtering option that applies to *fq*. Keys in 
         *filter_flags* are converted to messages using the 
-        ``SeqLib._filter_messages`` dictionary.
+        ``DataContainer._filter_messages`` dictionary.
         """
         print("Filtered read (%s) [%s]" % \
-                (', '.join(SeqLib._filter_messages[x] 
+                (', '.join(DataContainer._filter_messages[x] 
                  for x in filter_flags if filter_flags[x]), self.name), 
               file=self.log)
         print(fq, file=self.log)
 
 
-    def report_filtered(self, handle):
-        """
-        Outputs a summary of filtered reads to *handle* (usually a log file). 
-        Internal filter names are converted to messages using the 
-        ``SeqLib._filter_messages`` dictionary.
-        """
-        print('Number of filtered reads for "%s"' % self.name, file=handle)
-        for key in sorted(self.filter_stats):
-            if key == 'total':
-                continue # print this last
-            if self.filter_stats[key] > 0:
-                print("", SeqLib._filter_messages[key], self.filter_stats[key], 
-                      sep="\t", file=handle)
-
-        print("", 'total', self.filter_stats['total'], sep="\t", file=handle)
-
-
-    def save_counts(self, directory, keys=None, clear=False):
+    def save_data(self, directory, keys=None, clear=False):
         """
         Save the counts DataFrame as a tab-separated file in *directory*. 
         The file names are stored in the ``self.counts_file`` dictionary.
@@ -159,7 +74,7 @@ class SeqLib(object):
 
         If *clear* is ``True``, saved counts will be set to ``None`` after 
         writing. This is used to save memory. If needed later, the counts 
-        can be restored using :py:meth:`load_counts`.
+        can be restored using :py:meth:`load_data`.
         """
         if keys is None:
             keys = self.counts.keys()
@@ -177,7 +92,7 @@ class SeqLib(object):
                 self.counts[key] = None
 
 
-    def load_counts(self, keys=None):
+    def load_data(self, keys=None):
         """
         Load the counts from the ``.tsv`` files in the ``self.counts_file`` 
         dictionary.

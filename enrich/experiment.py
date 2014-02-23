@@ -17,7 +17,7 @@ def condition_cv_apply_fn(row, condition, use_scores):
                       'barcode.cv' : cv})
 
 
-class Experiment(object):
+class Experiment(DataContainer):
     """
     Class for a coordinating multiple :py:class:`~.selection.Selection` 
     objects. Creating an 
@@ -45,16 +45,12 @@ class Experiment(object):
     instead of scores.
     """
     def __init__(self, config):
-        self.name = "Unnamed" + self.__class__.__name__
-        self.verbose = False
-        self.log = None
+        DataContainer.__init__(self)
         self.conditions = dict()
         self.control = None
-        self.df_dict = dict()
         self.use_scores = True
 
         try:
-            self.name = config['name']
             for cnd in config['conditions']:
                 if not cnd['label'].isalnum():
                     raise EnrichError("Alphanumeric label required for condition '%s'" % cnd['label'], self.name)
@@ -83,36 +79,7 @@ class Experiment(object):
                 self.use_scores = False
 
 
-    def enable_logging(self, log):
-        """
-        Turns on log output for this object. Messages will be sent to the 
-        open file handle *log*. 
-
-        .. note:: One log file is usually shared by all objects in the \
-        analysis.
-        """
-        self.verbose = True
-        self.log = log
-        try:
-            print("# Logging started for '%s': %s" % 
-                        (self.name, time.asctime()), file=self.log)
-        except (IOError, AttributeError):
-            raise EnrichException("Could not write to log file", self.name)
-
-
-    def set_filters(self, config_filters, default_filters):
-        """
-        Sets the filtering options using the values from the 
-        *config_filters* dictionary and *default_filters* dictionary. Filtering 
-        options include consistency of scores across replicates.
-
-        .. note:: To help prevent user error, *config_filters* must be a \
-        subset of *default_filters*.
-        """
-        pass
-
-
-    def calc_selection_scores(self):
+    def calculate(self):
         """
         Calculate scores for all :py:class:`~selection.Selection` objects.
         """
@@ -122,7 +89,7 @@ class Experiment(object):
             for s in self.conditions[c]:
                 s_label = "%s.%d" % (c, s_id)
                 s_id += 1
-                s.calc_all()
+                s.calculate()
                 if self.use_scores: # keep the score and r_sq columns
                     if first:
                         for dtype in self.df_dict:
@@ -170,41 +137,9 @@ class Experiment(object):
         options present in the configuration object. Filtering is performed 
         using the appropriate apply function.
         """
-        self.save_data(os.path.join(self.hdf_dir, "experiment_prefilter"), 
+        self.save_data(os.path.join(self.save_dir, "experiment_prefilter"), 
                        clear=False)
         # for each filter that's specified
         # apply the filter
-        if self.filters['max barcode variation']:
-            nrows = len(self.df_dict['variants'])
-            self.df_dict['variants'] = \
-                    self.df_dict['variants'][self.df_dict['variants'].apply(\
-                        barcode_varation_filter, axis=1, 
-                        args=[self.filters['max barcode variation']])]
-            self.filter_stats['max barcode variation'] = \
-                    nrows - len(self.df_dict['variants'])
-        if self.filters['min count'] > 0:
-            nrows = len(self.df_dict['variants'])
-            self.df_dict['variants'] = \
-                    self.df_dict['variants'][self.df_dict['variants'].apply(\
-                        min_count_filter, axis=1, 
-                        args=[self.filters['min count']])]
-            self.filter_stats['min count'] = \
-                    nrows - len(self.df_dict['variants'])
-        if self.filters['min input count'] > 0:
-            nrows = len(self.df_dict['variants'])
-            self.df_dict['variants'] = \
-                    self.df_dict['variants'][self.df_dict['variants'].apply(\
-                        min_input_count_filter, axis=1, 
-                        args=[self.filters['min count']])]
-            self.filter_stats['min input count'] = \
-                    nrows - len(self.df_dict['variants'])
-        if self.filters['min rsquared'] > 0.0:
-            nrows = len(self.df_dict['variants'])
-            self.df_dict['variants'] = \
-                    self.df_dict['variants'][self.df_dict['variants'].apply(\
-                        min_rsq_filter, axis=1, 
-                        args=[self.filters['min rsquared']])]
-            self.filter_stats['min rsquared'] = \
-                    nrows - len(self.df_dict['variants'])
-
         self.filter_stats['total'] = sum(self.filter_stats.values())
+

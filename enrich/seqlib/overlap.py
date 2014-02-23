@@ -132,7 +132,7 @@ class OverlapSeqLib(VariantSeqLib):
         return merge
 
 
-    def count(self):
+    def calculate(self):
         """
         Reads the forward and reverse reads, merges them, performs 
         quality-based filtering, and counts the variants.

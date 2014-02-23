@@ -1,158 +1,95 @@
 from __future__ import print_function
 from sys import stderr
-import os.path
 import argparse
-import json
-from itertools import izip_longest
-from fastq_util import read_fastq_multi, print_fastq
+import os.path
+import fqread
 
 
-def assign_library_ids(config):
-    """Assign unique identifiers to each libary in the config object.
-
-    Checks user-specified libary identifiers for uniqueness. If nonunique
-    identifiers are encountered, returns None.
-
-    Returns config.
-    """
-    id_list = []
-
-    # build list of all user-specified library identifiers
-    duplicate_error = False
-    for lib in config['libraries']:
-        if 'id' in lib:
-            lib['id'] = str(lib['id'])
-            if lib['id'] in id_list:
-                print("Error: duplicate library identifier '%s'" % lib['id'],
-                      file=stderr)
-                duplicate_error = True
-            else:
-                id_list.append(lib['id'])
-    if duplicate_error:
-        return None
-
-    # assign identifiers as needed
-    current_id = 1
-    for lib in config['libraries']:
-        if 'id' not in lib:
-            while str(current_id) in id_list:
-                current_id += 1
-            lib['id'] = str(current_id)
-            current_id += 1
-
-    return config
-
-
-def assign_library_max_mismatches(config, max_mismatches=None):
-    unassigned_error = False
-    noninteger_error = False
-    for lib in config['libraries']:
-        if 'max mismatches' not in lib['index']:
-            if max_mismatches is None:
-                print("Error: max mismatches unspecified for '%s'" %
-                    lib['name'], file=stderr)
-                unassigned_error = True
-            else:
-                lib['index']['max mismatches'] = max_mismatches
-        else:
-            try:
-                lib['index']['max mismatches'] = \
-                    int(lib['index']['max mismatches'])
-            except ValueError:
-                print("Error: non-integer max mismatches for '%s'" %
-                    lib['name'], file=stderr)
-                noninteger_error = True
-
-    if unassigned_error or noninteger_error:
-        return None
-    else:
-        return config
-
-
-def split_fastq(config, outdir, index, forward, reverse):
+def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
     """
     """
     if index is None:
         print("Error: no index file specified for split_fastq", file=stderr)
         return
 
-    # build an iterator to process the files in parallel
-    fq_handles = {} # output file handles and index read sequences
-    if forward is not None and reverse is not None:
-        fq_iterator = read_fastq_multi([index, forward, reverse])
+    if len(sequences) == 0:
+        print("Error: no index sequences provided", file=stderr)
+        return
 
-        for library in config['libraries']:
+    # build an iterator to process the files in parallel
+    fq_handles = dict() # output file handles and index read sequences
+    if forward is not None and reverse is not None:
+        fq_iterator = read_fastq_multi([index, forward, reverse], match_lengths=True)
+        for s in sequences:
             name, ext = os.path.splitext(os.path.basename(index))
-            index_name = name + ".id%s" % library['id'] + ext
+            index_name = name + "_%s" % s + ext
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(forward))
-            forward_name = name + ".id%s" % library['id'] + ext
+            index_name = name + "_%s" % s + ext
             forward_name = os.path.join(outdir, forward_name)
 
             name, ext = os.path.splitext(os.path.basename(reverse))
-            reverse_name = name + ".id%s" % library['id'] + ext
+            index_name = name + "_%s" % s + ext
             reverse_name = os.path.join(outdir, reverse_name)
 
-            fq_handles[library['id']] = \
+            fq_handles[s] = \
                 (open(index_name, "w"), open(forward_name, "w"),
                  open(reverse_name, "w"))
-
     elif forward is not None:
-        fq_iterator = read_fastq_multi([index, forward])
-
-        for library in config['libraries']:
+        fq_iterator = read_fastq_multi([index, forward], match_lengths=True)
+        for s in sequences:
             name, ext = os.path.splitext(os.path.basename(index))
-            index_name = name + ".id%s" % library['id'] + ext
+            index_name = name + "_%s" % s + ext
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(forward))
-            forward_name = name + ".id%s" % library['id'] + ext
+            index_name = name + "_%s" % s + ext
             forward_name = os.path.join(outdir, forward_name)
 
-            fq_handles[library['id']] = \
-                (open(index_name, "w"), open(forward_name, "w"))
-
+            fq_handles[s] = \
+                (open(index_name, "w"), open(forward_name, "w"),
+                 open(reverse_name, "w"))
     elif reverse is not None:
-        fq_iterator = read_fastq_multi([index, reverse])
-
-        for library in config['libraries']:
+        fq_iterator = read_fastq_multi([index, reverse], match_lengths=True)
+        for s in sequences:
             name, ext = os.path.splitext(os.path.basename(index))
-            index_name = name + ".id%s" % library['id'] + ext
+            index_name = name + "_%s" % s + ext
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(reverse))
-            reverse_name = name + ".id%s" % library['id'] + ext
+            index_name = name + "_%s" % s + ext
             reverse_name = os.path.join(outdir, reverse_name)
 
-            fq_handles[library['id']] = \
-                (open(index_name, "w"), open(reverse_name, "w"))
-
+            fq_handles[s] = \
+                (open(index_name, "w"), open(forward_name, "w"),
+                 open(reverse_name, "w"))
     else:
-        print("Warning: no forward or reverse files specfied for split_fastq",
+        print("Error: no forward or reverse files specified for split_fastq",
               file=stderr)
         return
 
     for t in fq_iterator:
-        if None in t:
-            print("Error: FASTQ files are not the same length", file=stderr)
+        if t is None:
+            print("Warning: FASTQ files are not the same length", file=stderr)
             break
-        index_read = t[0][1]
-        library_match = None
-        for library in config['libraries']:
+        index_sequence = t[0].sequence
+
+        match = None
+        for s in sequences:
             mismatches = 0
-            for i in xrange(len(library['index']['sequence'])):
-                if index_read[i] != library['index']['sequence'][i]:
+            for i in xrange(len(s)):
+                if index_sequence[i] != s[i]:
                     mismatches += 1
-                    if mismatches > library['index']['max mismatches']:
+                    if mismatches > max_mismatches:
                         break
-            if mismatches <= library['index']['max mismatches']:
-                library_match = library['id']
+            if mismatches <= max_mismatches:
+                match = s
                 break
 
-        if library_match:
+        if match:
             for i in xrange(len(t)):
-                print_fastq(t[i], file=fq_handles[library_match][i])
+                print(t[i], file=fq_handles[match][i])
 
     # close all the files
     for handle_tuple in fq_handles.values():
@@ -162,7 +99,8 @@ def split_fastq(config, outdir, index, forward, reverse):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", help="configuration file in JSON format")
+    parser.add_argument("sequences", metavar="SEQ", nargs="+",
+                        help="index sequence to match")
     parser.add_argument("-f", "--forward", metavar="FQ", 
                         help="forward read FASTQ file")
     parser.add_argument("-r", "--reverse", metavar="FQ", 
@@ -172,17 +110,10 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", default=".", metavar="DIR",
                         help="output directory")
     parser.add_argument("-m", "--mismatches", metavar="N",
-                        help="index read mismatch threshold")
+                        help="index read mismatch threshold",
+                        type=int, default=0)
+
     args = parser.parse_args()
 
-    config = assign_library_ids(json.load(open(args.config)))
-    config = assign_library_max_mismatches(config, 
-                                           max_mismatches=args.mismatches)
-
-    split_fastq(config, args.output, args.index, args.forward, args.reverse)
+    split_fastq(args.output, args.sequences, args.index, args.forward, args.reverse, args.max_mismatches)
     
-    name, ext = os.path.splitext(os.path.basename(args.config))
-    postrun_config_name = name + ".postrun" + ext
-    postrun_config_name = os.path.join(args.output, postrun_config_name)
-    with open(postrun_config_name, "w") as config_handle:
-        json.dump(config, config_handle, indent=2, sort_keys=True)

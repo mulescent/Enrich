@@ -47,11 +47,10 @@ class BasicSeqLib(VariantSeqLib):
             raise EnrichError("FASTQ file error: %s" % fqerr, self.name)
 
 
-    def count(self):
+    def calculate(self):
         """
         Reads the forward or reverse FASTQ file (reverse reads are reverse-complemented),
-        performs quality-based filtering, and 
-        counts the variants.
+        performs quality-based filtering, and counts the variants.
         """
         self.counts['variants'] = dict()
 

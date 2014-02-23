@@ -126,12 +126,12 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
         self.filter_unmapped = True
 
 
-    def count(self):
+    def calculate(self):
         """
         Counts the barcodes using :py:meth:`BarcodeSeqLib.count` and combines them into 
         variant counts using the :py:class:`BarcodeMap`.
         """
-        BarcodeSeqLib.count(self) # count the barcodes
+        BarcodeSeqLib.calculate(self) # count the barcodes
         self.counts['variants'] = dict()
 
         if self.filter_unmapped:
@@ -184,11 +184,11 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
     def report_filtered_variant(self, handle, variant, count):
         """
         Outputs a summary of the filtered variant to *handle*. Internal filter 
-        names are converted to messages using the ``SeqLib._filter_messages`` 
+        names are converted to messages using the ``DataContainer._filter_messages`` 
         dictionary. Related to :py:meth:`SeqLib.report_filtered`.
         """
         print("Filtered variant (%s)" % \
-                    (SeqLib._filter_messages['max mutations']), file=handle)
+                    (DataContainer._filter_messages['max mutations']), file=handle)
         print(variant, file=handle)
         print("quantity=", count, sep="", file=handle)
 
