@@ -1,5 +1,6 @@
 from __future__ import print_function
 from enrich_error import EnrichError
+from datacontainer import DataContainer
 import selection
 import time
 
@@ -45,7 +46,7 @@ class Experiment(DataContainer):
     instead of scores.
     """
     def __init__(self, config):
-        DataContainer.__init__(self)
+        DataContainer.__init__(self, config)
         self.conditions = dict()
         self.control = None
         self.use_scores = True
@@ -112,7 +113,7 @@ class Experiment(DataContainer):
                             self.df_dict[dtype] = self.df_dict[dtype].join(s.df_dict[dtype][['ratio.%d' % s.timepoints[1]]],
                                 how="outer", rsuffix="%s" % s_label)
                             cnames.append("ratio.%s" % s_label)
-                s.save_data(clear=True)
+                s.save_data(self.save_dir, clear=True)  
         for dtype in self.df_dict:
             self.df_dict[dtype].columns = cnames
 

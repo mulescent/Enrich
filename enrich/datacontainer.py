@@ -1,6 +1,8 @@
 from __future__ import print_function
 from enrich_error import EnrichError
 import sys
+import time
+import os
 
 class DataContainer(object):
     """
@@ -49,16 +51,16 @@ class DataContainer(object):
         self.df_file = dict()
         self.filters = None
         self.filter_stats = None
-
-        # PARAMETERIZE
         self.save_dir = "."
-
+        
         try:
             self.name = config['name']
+            
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, 
                               self.name)
-
+                              
+        #self.save_dir = config['output directory']
 
     def enable_logging(self, log):
         """

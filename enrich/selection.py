@@ -6,6 +6,7 @@ from seqlib.barcodevariant import BarcodeVariantSeqLib, BarcodeMap
 from seqlib.barcode import BarcodeSeqLib
 from seqlib.overlap import OverlapSeqLib
 from config_check import seqlib_type
+from datacontainer import DataContainer
 import os
 import re
 import math
@@ -14,7 +15,6 @@ import time
 import pandas as pd
 import numpy as np
 from collections import Counter
-
 
 def nonsense_ns_carryover_apply_fn(row, position):
     """
