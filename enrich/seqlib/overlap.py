@@ -128,7 +128,7 @@ class OverlapSeqLib(VariantSeqLib):
 
         merge.sequence = "".join(merge.sequence)
         if self.trim:
-            merge.trim_length(self.fwd_start, self.overlap_length)
+            merge.trim_length(self.overlap_length, self.fwd_start)
         return merge
 
 
