@@ -38,7 +38,7 @@ if __name__ == "__main__":
         obj.enable_logging(open(args.log, "w"))
 
     obj.calculate()
-    obj.save_data(config['output directory'], clear=False)
+    obj.write_data()
     if args.plots:
-        obj.make_plots
+        obj.make_plots()
     

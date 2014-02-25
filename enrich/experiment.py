@@ -75,6 +75,10 @@ class Experiment(DataContainer):
             raise EnrichError("No enrichment data present across all selections", 
                               self.name)
 
+        for sel in all_selections:
+            if sel.output_base is None:
+                sel.set_output_base(self.output_base)
+
         for key in self.conditions:
             if any(len(x.timepoints) == 2 for x in self.conditions[key]):
                 self.use_scores = False
@@ -113,7 +117,7 @@ class Experiment(DataContainer):
                             self.df_dict[dtype] = self.df_dict[dtype].join(s.df_dict[dtype][['ratio.%d' % s.timepoints[1]]],
                                 how="outer", rsuffix="%s" % s_label)
                             cnames.append("ratio.%s" % s_label)
-                s.save_data(self.save_dir, clear=True)  
+                s.dump_data()  
         for dtype in self.df_dict:
             self.df_dict[dtype].columns = cnames
 
@@ -138,8 +142,7 @@ class Experiment(DataContainer):
         options present in the configuration object. Filtering is performed 
         using the appropriate apply function.
         """
-        self.save_data(os.path.join(self.save_dir, "experiment_prefilter"), 
-                       clear=False)
+        self.write_data(os.path.join(self.output_base, "experiment_prefilter"))
         # for each filter that's specified
         # apply the filter
         self.filter_stats['total'] = sum(self.filter_stats.values())

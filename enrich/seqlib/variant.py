@@ -55,6 +55,7 @@ aa_codes = {
         '?' : '???'
 }
 
+
 def has_indel(variant):
     """
     Helper function that returns ``True`` if the HGVS string *variant* 
