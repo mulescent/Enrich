@@ -159,7 +159,7 @@ def check_fastq(fname):
         if ext in (".fq", ".fastq"):
             return None
         else:
-            raise IOError("improper file extension for '%s'" % fname)
+            print("Warning: unexpected file extension for '%s'" % fname, file=stderr)
     else:
         raise IOError("file '%s' doesn't exist" % fname)
 
