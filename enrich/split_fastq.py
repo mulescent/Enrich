@@ -26,11 +26,11 @@ def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(forward))
-            index_name = name + "_%s" % s + ext
+            forward_name = name + "_%s" % s + ext
             forward_name = os.path.join(outdir, forward_name)
 
             name, ext = os.path.splitext(os.path.basename(reverse))
-            index_name = name + "_%s" % s + ext
+            reverse_name = name + "_%s" % s + ext
             reverse_name = os.path.join(outdir, reverse_name)
 
             fq_handles[s] = \
@@ -44,7 +44,7 @@ def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(forward))
-            index_name = name + "_%s" % s + ext
+            forward_name = name + "_%s" % s + ext
             forward_name = os.path.join(outdir, forward_name)
 
             fq_handles[s] = \
@@ -58,7 +58,7 @@ def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(reverse))
-            index_name = name + "_%s" % s + ext
+            reverse_name = name + "_%s" % s + ext
             reverse_name = os.path.join(outdir, reverse_name)
 
             fq_handles[s] = \
