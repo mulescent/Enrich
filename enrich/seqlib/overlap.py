@@ -5,7 +5,6 @@ from enrich_error import EnrichError
 from fqread import read_fastq_multi, check_fastq, FQRead
 import pandas as pd
 
-
 class OverlapSeqLib(VariantSeqLib):
     """
     Class for count data from sequencing libraries with overlapping paired-end 

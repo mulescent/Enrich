@@ -52,16 +52,15 @@ class DataContainer(object):
         self.filters = None
         self.filter_stats = None
         self.save_dir = "."
-        
+
         try:
             self.name = config['name']
-            
+           # self.save_dir = config['output directory']
+
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, 
                               self.name)
-                              
-        #self.save_dir = config['output directory']
-
+                                       
     def enable_logging(self, log):
         """
         Turns on log output for this object. Messages will be sent to the 
