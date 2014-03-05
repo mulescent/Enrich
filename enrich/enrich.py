@@ -34,6 +34,9 @@ if __name__ == "__main__":
     else:
         raise EnrichError("Unrecognized .json config", "enrich.py")
 
+    if obj.output_base is None:
+        raise EnrichError("No output directory set", "enrich.py")
+    
     if args.log:
         obj.enable_logging(open(args.log, "w"))
 
