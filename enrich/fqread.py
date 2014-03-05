@@ -67,7 +67,7 @@ class FQRead(object):
         return len(self.sequence)
 
 
-    def trim(self, start=1, end=-1):
+    def trim(self, start=1, end=None):
         """
         Trims this :py:class:`~fqread.FQRead` to contain bases between 
         *start* and *end* (inclusive). Bases are numbered starting at 1.

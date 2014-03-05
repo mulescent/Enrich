@@ -1,6 +1,5 @@
 from __future__ import print_function
 import time
-import pandas as pd
 from enrich_error import EnrichError
 from datacontainer import DataContainer
 import os.path

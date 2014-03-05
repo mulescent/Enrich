@@ -1,6 +1,7 @@
 from variant import VariantSeqLib
 from enrich_error import EnrichError
 from fqread import read_fastq, check_fastq
+import pandas as pd
 
 
 class BasicSeqLib(VariantSeqLib):
