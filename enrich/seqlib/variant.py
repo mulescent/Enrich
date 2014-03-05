@@ -4,6 +4,8 @@ from sys import stdout, stderr
 from enrich_error import EnrichError
 from aligner import Aligner
 from seqlib import SeqLib
+import pandas as pd
+
 
 # Variant string for counting wild type sequences
 WILD_TYPE_VARIANT = "_wt"
@@ -54,6 +56,7 @@ aa_codes = {
         'Ter' : '*', '*' : 'Ter',
         '?' : '???'
 }
+
 
 def has_indel(variant):
     """

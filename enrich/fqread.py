@@ -67,7 +67,7 @@ class FQRead(object):
         return len(self.sequence)
 
 
-    def trim(self, start=1, end=-1):
+    def trim(self, start=1, end=None):
         """
         Trims this :py:class:`~fqread.FQRead` to contain bases between 
         *start* and *end* (inclusive). Bases are numbered starting at 1.
@@ -159,7 +159,7 @@ def check_fastq(fname):
         if ext in (".fq", ".fastq"):
             return None
         else:
-            raise IOError("improper file extension for '%s'" % fname)
+            print("Warning: unexpected file extension for '%s'" % fname, file=stderr)
     else:
         raise IOError("file '%s' doesn't exist" % fname)
 

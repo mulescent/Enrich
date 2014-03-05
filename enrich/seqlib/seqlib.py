@@ -1,6 +1,5 @@
 from __future__ import print_function
 import time
-import pandas as pd
 from enrich_error import EnrichError
 from datacontainer import DataContainer
 import os.path
@@ -62,49 +61,3 @@ class SeqLib(DataContainer):
                  for x in filter_flags if filter_flags[x]), self.name), 
               file=self.log)
         print(fq, file=self.log)
-
-
-    def save_data(self, directory, keys=None, clear=False):
-        """
-        Save the counts DataFrame as a tab-separated file in *directory*. 
-        The file names are stored in the ``self.counts_file`` dictionary.
-
-        The optional *keys* parameter is a list of types of counts to be 
-        saved. By default, all counts are saved.
-
-        If *clear* is ``True``, saved counts will be set to ``None`` after 
-        writing. This is used to save memory. If needed later, the counts 
-        can be restored using :py:meth:`load_data`.
-        """
-        if keys is None:
-            keys = self.counts.keys()
-        for key in keys:
-            output_dir = os.path.join(directory, key)
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
-            fname = fname.replace(' ', '_')
-            self.counts_file[key] = os.path.join(output_dir, fname + ".tsv")
-            self.counts[key].to_csv(self.counts_file[key], 
-                    sep="\t", na_rep="NaN", float_format="%.4g", 
-                    index_label="sequence")
-            if clear:
-                self.counts[key] = None
-
-
-    def load_data(self, keys=None):
-        """
-        Load the counts from the ``.tsv`` files in the ``self.counts_file`` 
-        dictionary.
-
-        The optional *keys* parameter is a list of types of counts to be 
-        loaded. By default, all counts are loaded.
-        """
-        if keys is None:
-            keys = self.counts_file.keys()
-        else:
-            if not all(key in self.counts_file.keys() for key in keys):
-                raise EnrichError("Cannot load unsaved counts", self.name)
-        for key in keys:
-            self.counts[key] = pd.from_csv(self.counts_file[key], sep="\t")
-

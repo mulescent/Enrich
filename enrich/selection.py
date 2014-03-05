@@ -184,6 +184,9 @@ class Selection(DataContainer):
                 else:
                     new = globals()[libtype](lib)
 
+                if new.output_base is None:
+                    new.set_output_base(self.output_base)
+
                 if new.timepoint not in self.libraries:
                     self.libraries[new.timepoint] = list()
                 self.libraries[new.timepoint].append(new)
@@ -254,26 +257,6 @@ class Selection(DataContainer):
             raise EnrichError("Missing required config value %s" % key, self.name)
 
 
-    def enable_logging(self, log):
-        """
-        Turns on log output for this object. Messages will be sent to the 
-        open file handle *log*. 
-
-        .. note:: One log file is usually shared by all objects in the \
-        analysis. This method is invoked by :py:class:`Experiment` logging functions.
-        """
-        self.verbose = True
-        self.log = log
-        try:
-            print("# Logging started for '%s': %s" % 
-                        (self.name, time.asctime()), file=self.log)
-        except (IOError, AttributeError):
-            raise EnrichException("Could not write to log file", self.name)
-        for timepoint in self.libraries:
-            for lib in self.libraries[timepoint]:
-                lib.enable_logging(log)
-
-
     def count_timepoints(self):
         """
         Combine :py:class:`~seqlib.seqlib.SeqLib` objects into individual timepoints and 
@@ -289,7 +272,7 @@ class Selection(DataContainer):
             self.calc_counts(dtype)
         for tp in self.timepoints:
             for lib in self.libraries[tp]:
-                lib.save_data(self.save_dir, clear=True)
+                lib.dump_data()
 
 
     def calc_counts(self, dtype):
@@ -433,51 +416,6 @@ class Selection(DataContainer):
             self.df_dict[dtype]['count.%d' % tp] = self.df_dict[dtype]['count.%d' % tp].astype("int32")
 
 
-    def save_data(self, directory, keys=None, clear=False):
-        """
-        Save the :py:class:`pandas.DataFrame` objects as tab-separated files in *directory*. The 
-        file names are stored in the ``self.df_file`` dictionary.
-
-        The optional *keys* parameter is a list of types of counts to be 
-        saved. By default, all counts are saved.
-
-        If *clear* is ``True``, saved data will be set to ``None`` after 
-        writing. This is used to save memory. If needed later, the data 
-        can be restored using :py:meth:`load_data`.
-        """
-        if keys is None:
-            keys = self.df_dict.keys()
-        for key in keys:
-            output_dir = os.path.join(directory, key)
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
-            fname = fname.replace(' ', '_')
-            self.df_file[key] = os.path.join(output_dir, fname + ".tsv")
-            self.df_dict[key].to_csv(self.df_file[key], 
-                    sep="\t", na_rep="NaN", float_format="%.4g", 
-                    index_label="sequence")
-            if clear:
-                self.df_dict[key] = None
-
-
-    def load_data(self):
-        """
-        Load the data from the ``.tsv`` files in the ``self.df_file`` 
-        dictionary.
-
-        The optional *keys* parameter is a list of types of counts to be 
-        loaded. By default, all counts are loaded.
-        """
-        if keys is None:
-            keys = self.df_file.keys()
-        else:
-            if not all(key in self.df_file.keys() for key in keys):
-                raise EnrichError("Cannot load unsaved data", self.name)
-        for key in keys:
-            self.counts[key] = pd.from_csv(self.df_file[key], sep="\t")
-
-
     def filter_data(self):
         """
         Apply the filtering functions to the data, based on the filter 
@@ -485,8 +423,7 @@ class Selection(DataContainer):
         using the appropriate apply function. Frequencies, ratios, and 
         enrichments must be recalculated after filtering.
         """
-        self.save_data(os.path.join(self.save_dir, "selection_prefilter"), 
-                       clear=False)
+        self.write_data(os.path.join(self.output_base, "selection_prefilter"))
         # for each filter that's specified
         # apply the filter
         if self.filters['max barcode variation']:

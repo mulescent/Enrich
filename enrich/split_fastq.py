@@ -2,7 +2,7 @@ from __future__ import print_function
 from sys import stderr
 import argparse
 import os.path
-import fqread
+from fqread import read_fastq_multi
 
 
 def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
@@ -26,11 +26,11 @@ def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(forward))
-            index_name = name + "_%s" % s + ext
+            forward_name = name + "_%s" % s + ext
             forward_name = os.path.join(outdir, forward_name)
 
             name, ext = os.path.splitext(os.path.basename(reverse))
-            index_name = name + "_%s" % s + ext
+            reverse_name = name + "_%s" % s + ext
             reverse_name = os.path.join(outdir, reverse_name)
 
             fq_handles[s] = \
@@ -44,12 +44,11 @@ def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(forward))
-            index_name = name + "_%s" % s + ext
+            forward_name = name + "_%s" % s + ext
             forward_name = os.path.join(outdir, forward_name)
 
             fq_handles[s] = \
-                (open(index_name, "w"), open(forward_name, "w"),
-                 open(reverse_name, "w"))
+                (open(index_name, "w"), open(forward_name, "w"))
     elif reverse is not None:
         fq_iterator = read_fastq_multi([index, reverse], match_lengths=True)
         for s in sequences:
@@ -58,12 +57,11 @@ def split_fastq(outdir, sequences, index, forward, reverse, max_mismatches):
             index_name = os.path.join(outdir, index_name)
 
             name, ext = os.path.splitext(os.path.basename(reverse))
-            index_name = name + "_%s" % s + ext
+            reverse_name = name + "_%s" % s + ext
             reverse_name = os.path.join(outdir, reverse_name)
 
             fq_handles[s] = \
-                (open(index_name, "w"), open(forward_name, "w"),
-                 open(reverse_name, "w"))
+                (open(index_name, "w"), open(reverse_name, "w"))
     else:
         print("Error: no forward or reverse files specified for split_fastq",
               file=stderr)
@@ -115,5 +113,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    split_fastq(args.output, args.sequences, args.index, args.forward, args.reverse, args.max_mismatches)
+    split_fastq(args.output, args.sequences, args.index, args.forward, args.reverse, args.mismatches)
     

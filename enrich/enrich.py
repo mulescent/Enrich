@@ -17,7 +17,13 @@ if __name__ == "__main__":
     parser.add_argument("--no-plots", help="don't make plots", dest="plots", action="store_false", default=True)
     args = parser.parse_args()
 
-    config = json.load(open(args.config, "U"))
+    try:
+        config = json.load(open(args.config, "U"))
+    except IOError:
+        raise EnrichError('Failed to open "%s"' % args.config, "enrich.py")
+    except ValueError:
+        raise EnrichError("Improperly formatted .json file", "enrich.py")
+
     if config_check.is_experiment(config):
         obj = Experiment(config)
     elif config_check.is_selection(config):
@@ -31,7 +37,6 @@ if __name__ == "__main__":
         obj.enable_logging(open(args.log, "w"))
 
     obj.calculate()
-    obj.save_data(config['output directory'], clear=False)
+    obj.write_data()
     if args.plots:
-        obj.make_plots
-        
+        obj.make_plots()

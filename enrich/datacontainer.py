@@ -4,6 +4,16 @@ import sys
 import time
 import os
 
+
+def fix_filename(s):
+    """
+    Clean up a filename *s* by removing invalid characters and converting spaces to underscores.
+    """
+    fname = "".join(c for c in s if c.isalnum() or c in (' ._~'))
+    fname = fname.replace(' ', '_')
+    return fname
+
+
 class DataContainer(object):
     """
     Abstract class for all data-containing classes 
@@ -51,16 +61,31 @@ class DataContainer(object):
         self.df_file = dict()
         self.filters = None
         self.filter_stats = None
-        self.save_dir = "."
-
+        self.output_base = None
+        
         try:
             self.name = config['name']
-           # self.save_dir = config['output directory']
-
         except KeyError as key:
             raise EnrichError("Missing required config value %s" % key, 
                               self.name)
-                                       
+        
+        if 'output directory' in config:
+            self.set_output_base(config['output directory'])
+
+
+    def set_output_base(self, dirname):
+        """
+        Sets the object's base output directory (used for :py:meth:`dump_data` and other class-specific methods) 
+        to *dirname* and attempts to create it.
+        """
+        dirname = fix_filename(dirname)
+        try:
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+        except OSError:
+            raise EnrichError("Failed to create output directory", self.name)
+        self.output_base = dirname
+
     def enable_logging(self, log):
         """
         Turns on log output for this object. Messages will be sent to the 
@@ -78,48 +103,61 @@ class DataContainer(object):
             raise EnrichException("Could not write to log file", self.name)
 
 
-    def save_data(self, directory, keys=None, clear=False):
+    def dump_data(self):
         """
-        Save the :py:class:`pandas.DataFrame` objects as tab-separated files in *directory*. The 
-        file names are stored in the ``self.df_file`` dictionary.
+        Save the :py:class:`pandas.DataFrame` objects as tab-separated files and 
+        set the data to ``None`` to save memory. The 
+        file names are stored for use by :py:meth:`restore_data`.
+        """
+        for key in self.df_dict.keys():
+            try:
+                output_dir = os.path.join(self.output_base, "dump", fix_filename(self.name))
+            except AttributeError:
+                raise EnrichError("No output directory specified for object", self.name)
+            try:
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+            except OSError:
+                raise EnrichError("Failed to create dump directory", self.name)
+            fname = os.path.join(output_dir, fix_filename(key + ".tsv"))
+            self.df_dict[key].to_csv(fname, 
+                    sep="\t", na_rep="NaN", float_format="%.4g", 
+                    index_label="sequence")
+            self.df_file[key] = fname
+            self.df_dict[key] = None
+
+
+    def write_data(self, directory=None, keys=None):
+        """
+        Save the :py:class:`pandas.DataFrame` objects as tab-separated files in a new subdirectory of *directory* 
+        with the same name as the object. If *directory* is ``None``, files will be saved to the object's default output directory.
 
         The optional *keys* parameter is a list of types of counts to be 
         saved. By default, all counts are saved.
-
-        If *clear* is ``True``, saved data will be set to ``None`` after 
-        writing. This is used to save memory. If needed later, the data 
-        can be restored using :py:meth:`load_data`.
         """
         if keys is None:
             keys = self.df_dict.keys()
         for key in keys:
-            output_dir = os.path.join(directory, key)
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            fname = "".join(c for c in self.name if c.isalnum() or c in (' ._~'))
-            fname = fname.replace(' ', '_')
-            self.df_file[key] = os.path.join(output_dir, fname + ".tsv")
-            self.df_dict[key].to_csv(self.df_file[key], 
+            try:
+                output_dir = os.path.join(self.output_base, fix_filename(self.name))
+            except AttributeError:
+                raise EnrichError("Invalid output directory specified for object", self.name)
+            try:
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+            except OSError:
+                raise EnrichError("Failed to create output directory", self.name)
+            fname = os.path.join(output_dir, fix_filename(key + ".tsv"))
+            self.df_dict[key].to_csv(fname, 
                     sep="\t", na_rep="NaN", float_format="%.4g", 
                     index_label="sequence")
-            if clear:
-                self.df_dict[key] = None
 
 
-    def load_data(self):
+    def restore_data(self):
         """
-        Load the data from the ``.tsv`` files in the ``self.df_file`` 
-        dictionary.
-
-        The optional *keys* parameter is a list of types of counts to be 
-        loaded. By default, all counts are loaded.
+        Load the data from the ``.tsv`` files written by :py:meth:`dump_data`.
         """
-        if keys is None:
-            keys = self.df_file.keys()
-        else:
-            if not all(key in self.df_file.keys() for key in keys):
-                raise EnrichError("Cannot load unsaved data", self.name)
-        for key in keys:
+        for key in self.df_file.keys():
             self.counts[key] = pd.from_csv(self.df_file[key], sep="\t")
 
 
