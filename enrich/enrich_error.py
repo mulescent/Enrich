@@ -1,4 +1,5 @@
 from __future__ import print_function
+import logging
 
 
 class EnrichError(Exception):
@@ -8,8 +9,10 @@ class EnrichError(Exception):
     def __init__(self, value, name):
         self.value = value
         self.name = name
+        logging.error(str(self))
+
     def __str__(self):
-        return '%s [Enrich name: "%s"]' % (repr(self.value), self.name)
+        return '%s [%s]' % (repr(self.value), self.name)
 
 
 

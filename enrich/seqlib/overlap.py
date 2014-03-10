@@ -4,6 +4,7 @@ from variant import VariantSeqLib
 from enrich_error import EnrichError
 from fqread import read_fastq_multi, check_fastq, FQRead
 import pandas as pd
+import logging
 
 
 class OverlapSeqLib(VariantSeqLib):
@@ -153,11 +154,11 @@ class OverlapSeqLib(VariantSeqLib):
                 if not fwd.is_chaste():
                     filter_flags['chastity'] = True
                     if self.verbose:
-                        self.report_filtered_read(self.log, fwd, filter_flags)
+                        self.report_filtered_read(fwd, filter_flags)
                 if not rev.is_chaste():
                     filter_flags['chastity'] = True
                     if self.verbose:
-                        self.report_filtered_read(self.log, rev, filter_flags)
+                        self.report_filtered_read(rev, filter_flags)
                 if filter_flags['chastity']:
                     self.filter_stats['chastity'] += 1
                     self.filter_stats['total'] += 1
@@ -168,8 +169,8 @@ class OverlapSeqLib(VariantSeqLib):
                 self.filter_stats['total'] += 1
                 filter_flags['merge failure'] = True
                 if self.verbose:
-                    self.report_filtered_read(self.log, fwd, filter_flags)
-                    self.report_filtered_read(self.log, rev, filter_flags)
+                    self.report_filtered_read(fwd, filter_flags)
+                    self.report_filtered_read(rev, filter_flags)
             else:
                 if self.filters['remove unresolvable']:
                     if 'X' in merge.sequence:
@@ -191,7 +192,7 @@ class OverlapSeqLib(VariantSeqLib):
                 if any(filter_flags.values()):
                     self.filter_stats['total'] += 1
                     if self.verbose:
-                        self.report_filtered_read(self.log, merge, filter_flags)
+                        self.report_filtered_read(merge, filter_flags)
 
         self.counts['variants'] = \
                 pd.DataFrame.from_dict(self.counts['variants'], 
@@ -200,4 +201,9 @@ class OverlapSeqLib(VariantSeqLib):
             raise EnrichError("Failed to count variants", self.name)
         self.counts['variants'].columns = ['count']
 
+        logging.info("Counted %d variants (%d unique) [%s]" % \
+                (self.counts['variants']['count'].sum(), len(self.counts['variants'].index), self.name))
+        if self.aligner is not None:
+            logging.info("Aligned %d variants [%s]" % (self.aligner.calls, self.name))
+        self.report_filter_stats()
 

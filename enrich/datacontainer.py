@@ -7,7 +7,8 @@ import os
 
 def fix_filename(s):
     """
-    Clean up a filename *s* by removing invalid characters and converting spaces to underscores.
+    Clean up a filename *s* by removing invalid characters and converting 
+    spaces to underscores. Returns the cleaned filename.
     """
     fname = "".join(c for c in s if c.isalnum() or c in (' ._~'))
     fname = fname.replace(' ', '_')
@@ -30,7 +31,7 @@ class DataContainer(object):
     associated log file output message added to the dictionary.
 
     .. literalinclude:: ../datacontainer.py
-        :lines: 26-41
+        :lines: 39-54
     """
 
     # Note: the following block is referenced by line number above
@@ -56,7 +57,6 @@ class DataContainer(object):
     def __init__(self, config):
         self.name = "Unnamed" + self.__class__.__name__
         self.verbose = False
-        self.log = None
         self.df_dict = dict()
         self.df_file = dict()
         self.filters = None
@@ -75,33 +75,17 @@ class DataContainer(object):
 
     def set_output_base(self, dirname):
         """
-        Sets the object's base output directory (used for :py:meth:`dump_data` and other class-specific methods) 
-        to *dirname* and attempts to create it.
+        Sets the object's base output directory (used for 
+        :py:meth:`dump_data` and other class-specific methods) to *dirname* 
+        and creates the directory if it doesn't exist.
         """
-        dirname = fix_filename(dirname)
+        #dirname = fix_filename(dirname)
         try:
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
         except OSError:
             raise EnrichError("Failed to create output directory", self.name)
         self.output_base = dirname
-
-
-    def enable_logging(self, log):
-        """
-        Turns on log output for this object. Messages will be sent to the 
-        open file handle *log*. 
-
-        .. note:: One log file is usually shared by all objects in the \
-        analysis.
-        """
-        self.verbose = True
-        self.log = log
-        try:
-            print("# Logging started for '%s': %s" % 
-                        (self.name, time.asctime()), file=self.log)
-        except (IOError, AttributeError):
-            raise EnrichException("Could not write to log file", self.name)
 
 
     def dump_data(self):
@@ -181,7 +165,7 @@ class DataContainer(object):
             if key not in self.filters:
                 unused.append(key)
         if len(unused) > 0:
-            raise EnrichError("Unused filter parameters (%s)" % 
+            logging.warning("Unused filter parameters (%s) [%s]" % 
                               ', '.join(unused), self.name)
 
         self.filter_stats = dict()
@@ -190,17 +174,15 @@ class DataContainer(object):
         self.filter_stats['total'] = 0
 
 
-    def write_filter_stats(self, handle=None):
-        if handle is None:
-            if self.log is not None:
-                handle = self.log
-            else:
-                handle = sys.stdout
-
+    def report_filter_stats(self):
+        elements = list()
         for key in sorted(self.filter_stats, key=self.filter_stats.__getitem__, reverse=True):
             if key != 'total':
-                print(DataContainer._filter_messages[key], self.filter_stats[key], file=handle)
-        print('total', self.filters_stats['total'], file=handle)
+                elements.append((DataContainer._filter_messages[key], self.filter_stats[key]))
+        elements.append(('total', self.filters_stats['total']))
+        elements = ["\t".join(str(a) for a in e) for e in elements]
+        logging.info("Filtered element statistics [%s]\n%s" % \
+                (self.name, "\n".join(elements)))
 
 
     def calculate(self):

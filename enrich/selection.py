@@ -176,6 +176,8 @@ class Selection(DataContainer):
 
             libnames = list()
             for lib in config['libraries']:
+                if 'output directory' not in lib:
+                    lib['output directory'] = self.output_base
                 libtype = seqlib_type(lib)
                 if libtype is None:
                     raise EnrichError("Unrecognized SeqLib config", self.name)
