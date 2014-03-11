@@ -53,4 +53,6 @@ if __name__ == "__main__":
     obj.calculate()
     obj.write_data()
     if args.plots:
-        obj.make_plots()
+        pass
+#        obj.make_plots()
+

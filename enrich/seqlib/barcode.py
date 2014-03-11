@@ -1,5 +1,6 @@
 from __future__ import print_function
 import re
+import logging
 from seqlib import SeqLib
 from enrich_error import EnrichError
 from fqread import read_fastq, check_fastq

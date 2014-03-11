@@ -23,7 +23,7 @@ Contents:
    :hidden:
 
    global
-
+   todo
 
 Indices and tables
 ==================
