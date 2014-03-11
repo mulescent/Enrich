@@ -3,7 +3,7 @@ from enrich_error import EnrichError
 import sys
 import time
 import os
-
+import logging
 
 def fix_filename(s):
     """
