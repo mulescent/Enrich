@@ -1,5 +1,6 @@
 from __future__ import print_function
 import time
+import logging
 from enrich_error import EnrichError
 from datacontainer import DataContainer
 import os.path
@@ -19,19 +20,24 @@ class SeqLib(DataContainer):
 
         try:
             self.timepoint = int(config['timepoint'])
-            if 'align variants' in config:
-                if config['align variants']:
-                    self.aligner = Aligner()
-                else:
-                    self.aligner = None
-            else:
-                self.aligner = None
-
         except KeyError as key:
             raise EnrichError("Missing required config value '%s'" % key, 
                               self.name)
         except ValueError as value:
             raise EnrichError("Invalid parameter value %s" % value, self.name)
+
+        if 'align variants' in config:
+            if config['align variants']:
+                self.aligner = Aligner()
+            else:
+                self.aligner = None
+        else:
+            self.aligner = None
+
+        if 'report filtered reads' in config:
+            self.report_filtered_reads = config['report filtered reads']
+        else:
+            self.report_filtered_reads = self.verbose
 
         # initialize data
         self.counts = dict()        # pandas dataframes
@@ -48,16 +54,14 @@ class SeqLib(DataContainer):
         raise NotImplementedError("must be implemented by subclass")
 
 
-    def report_filtered_read(self, handle, fq, filter_flags):
+    def report_filtered_read(self, fq, filter_flags):
         """
-        Outputs the :py:class:`~fqread.FQRead` object *fq* to *handle* 
-        (usually a log file). The dictionary *filter_flags* contains ``True`` 
+        Write the :py:class:`~fqread.FQRead` object *fq* to the ``DEBUG``
+        logging . The dictionary *filter_flags* contains ``True`` 
         values for each filtering option that applies to *fq*. Keys in 
         *filter_flags* are converted to messages using the 
         ``DataContainer._filter_messages`` dictionary.
         """
-        print("Filtered read (%s) [%s]" % \
-                (', '.join(DataContainer._filter_messages[x] 
-                 for x in filter_flags if filter_flags[x]), self.name), 
-              file=self.log)
-        print(fq, file=self.log)
+        logging.debug("Filtered read (%s) [%s]\n%s" % \
+                      (', '.join(DataContainer._filter_messages[x] 
+                       for x in filter_flags if filter_flags[x]), self.name, fq))

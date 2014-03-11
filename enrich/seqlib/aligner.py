@@ -51,6 +51,7 @@ class Aligner(object):
         self.matrix = None
         self.seq1 = None
         self.seq2 = None
+        self.calls = 0
 
 
     def align(self, seq1, seq2):
@@ -131,4 +132,5 @@ class Aligner(object):
         if indel is not None:
             traceback_combined.append(tuple(indel))
 
+        self.calls += 1
         return traceback_combined

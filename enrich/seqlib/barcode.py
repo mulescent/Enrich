@@ -40,8 +40,9 @@ class BarcodeSeqLib(SeqLib):
     class implements an alternative method for removing artifactual barcodes \
     that may be more appropriate for users of that module.
     """
-    def __init__(self, config, parent=True):
-        if parent:
+    def __init__(self, config, barcodevariant=False):
+        self.barcodevariant = barcodevariant
+        if not self.barcodevariant:
             SeqLib.__init__(self, config)
         try:
             if 'forward' in config['fastq'] and 'reverse' in config['fastq']:
@@ -121,7 +122,7 @@ class BarcodeSeqLib(SeqLib):
             if any(filter_flags.values()): # failed quality filtering
                 self.filter_stats['total'] += 1
                 if self.verbose:
-                    self.report_filtered_read(self.log, fq, filter_flags)
+                    self.report_filtered_read(fq, filter_flags)
             else: # passed quality filtering
                 try:
                     self.counts['barcodes'][fq.sequence.upper()] += 1
@@ -138,3 +139,7 @@ class BarcodeSeqLib(SeqLib):
                 self.counts['barcodes'][self.counts['barcodes']['count'] \
                     > self.min_count]
 
+        logging.info("Counted %d barcodes (%d unique) [%s]" % \
+                (self.counts['barcodes']['count'].sum(), len(self.counts['barcodes'].index), self.name))
+        if not self.barcodevariant:
+            self.report_filter_stats()

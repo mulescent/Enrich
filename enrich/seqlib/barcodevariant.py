@@ -1,5 +1,6 @@
 from __future__ import print_function
 import re
+import logging
 from variant import VariantSeqLib
 from barcode import BarcodeSeqLib
 from seqlib import SeqLib
@@ -65,6 +66,9 @@ class BarcodeMap(dict):
                 self.variants[self[bc]] = list()
             self.variants[self[bc]].append(bc)
 
+        logging.info("Assigned %d barcodes to %d variants [%s]" % \
+                     (len(self.keys()), len(self.variants.keys()), self.name))
+
 
     def write_variants(self, fname):
         """
@@ -79,6 +83,8 @@ class BarcodeMap(dict):
                 sorted(self.variants.items(), key=lambda x:x[1]):
             print(variant, ", ".join(barcodes), sep="\t", file=handle)
         handle.close()
+
+        logging.info('Wrote BarcodeMap variants file "%s" [%s]' % (fname, self.name))
 
 
 
@@ -101,7 +107,7 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
     """
     def __init__(self, config, barcode_map=None):
         VariantSeqLib.__init__(self, config)
-        BarcodeSeqLib.__init__(self, config, parent=False)
+        BarcodeSeqLib.__init__(self, config, barcodevariant=True)
         try:
             if 'map file' in config['barcodes']:
                 self.barcode_map = BarcodeMap(config['barcodes']['map file'])
@@ -149,7 +155,7 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
                 self.filter_stats['max mutations'] += count
                 self.filter_stats['total'] += count
                 if self.verbose:
-                    self.report_filtered_variant(self.log, variant, count)
+                    self.report_filtered_variant(variant, count)
             else:
                 if mutations not in self.barcode_map.variants:
                     self.barcode_map.variants[mutations] = list()
@@ -163,11 +169,11 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
             raise EnrichError("Failed to count variants", self.name)
         self.counts['variants'].columns = ['count']
 
-        if self.log is not None:
-            print("Counted %d unique variants from %d unique barcodes (%s)" \
-                    % (len(self.counts['variants'].index), 
-                        len(self.counts['barcodes'].index), self.name), 
-                        file=self.log)
+        logging.info("Counted %d variants (%d unique) [%s]" % \
+                (self.counts['variants']['count'].sum(), len(self.counts['variants'].index), self.name))
+        if self.aligner is not None:
+            logging.info("Aligned %d variants [%s]" % (self.aligner.calls, self.name))
+        self.report_filter_stats()
 
 
     def orphan_barcodes(self, mincount=0):
@@ -181,14 +187,12 @@ class BarcodeVariantSeqLib(VariantSeqLib, BarcodeSeqLib):
                 [self.counts['barcodes']['count'] >= mincount]
 
 
-    def report_filtered_variant(self, handle, variant, count):
+    def report_filtered_variant(self, variant, count):
         """
         Outputs a summary of the filtered variant to *handle*. Internal filter 
         names are converted to messages using the ``DataContainer._filter_messages`` 
         dictionary. Related to :py:meth:`SeqLib.report_filtered`.
         """
-        print("Filtered variant (%s)" % \
-                    (DataContainer._filter_messages['max mutations']), file=handle)
-        print(variant, file=handle)
-        print("quantity=", count, sep="", file=handle)
+        logging.debug("Filtered variant (quantity=%d) (%s) [%s]\n%s" % \
+                    (count, DataContainer._filter_messages['max mutations'], self.name, variant), file=handle)
 

@@ -3,6 +3,7 @@ from enrich_error import EnrichError
 from datacontainer import DataContainer
 import selection
 import time
+import sys
 
 
 def condition_cv_apply_fn(row, condition, use_scores):
@@ -55,6 +56,9 @@ class Experiment(DataContainer):
             for cnd in config['conditions']:
                 if not cnd['label'].isalnum():
                     raise EnrichError("Alphanumeric label required for condition '%s'" % cnd['label'], self.name)
+                for sel_config in cnd['selections']: # assign output base if not present
+                    if 'output directory' not in sel_config:
+                        sel_config['output directory'] = self.output_base
                 self.conditions[cnd['label']] = [selection.Selection(x) for x in cnd['selections']]
                 if cnd['control']:
                     if self.control is None:
@@ -74,10 +78,6 @@ class Experiment(DataContainer):
         if len(self.df_dict.keys()) == 0:
             raise EnrichError("No enrichment data present across all selections", 
                               self.name)
-
-        for sel in all_selections:
-            if sel.output_base is None:
-                sel.set_output_base(self.output_base)
 
         for key in self.conditions:
             if any(len(x.timepoints) == 2 for x in self.conditions[key]):
