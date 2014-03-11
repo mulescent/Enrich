@@ -3,6 +3,7 @@ from enrich_error import EnrichError
 import sys
 import time
 import os
+import logging
 
 
 def fix_filename(s):
@@ -179,7 +180,7 @@ class DataContainer(object):
         for key in sorted(self.filter_stats, key=self.filter_stats.__getitem__, reverse=True):
             if key != 'total':
                 elements.append((DataContainer._filter_messages[key], self.filter_stats[key]))
-        elements.append(('total', self.filters_stats['total']))
+        elements.append(('total', self.filter_stats['total']))
         elements = ["\t".join(str(a) for a in e) for e in elements]
         logging.info("Filtered element statistics [%s]\n%s" % \
                 (self.name, "\n".join(elements)))
